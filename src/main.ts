@@ -3,10 +3,6 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import { Peer } from "peerjs";
 
-export const peer = new Peer()
-
-await RAPIER.init();
-
 import { createWorld, World } from "@javelin/ecs";
 import threeRenderSystem from "./systems/threeRenderSystem";
 import physics from "./systems/physics";
@@ -15,6 +11,7 @@ import { bundleSpawner } from "./systems/bundleSpawner";
 import { bundleMap } from "./setup/prefab";
 import { rotateCube } from "./systems/rotateCube";
 
+export const peer = new Peer();
 console.log(bundleMap);
 
 export let world: World | undefined;
@@ -29,7 +26,7 @@ export async function applySnapShot(snapshot: any = {}) {
 	world.addSystem(threeRenderSystem);
 }
 
-export const physicsWorld = new RAPIER.World(new RAPIER.Vector3(0, -9.8, 0));
+export let physicsWorld: RAPIER.World | undefined; // = new RAPIER.World(new RAPIER.Vector3(0, -9.8, 0));
 
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(
@@ -54,17 +51,19 @@ function animate() {
 	t1 = t2;
 }
 
-//init ecs world
-applySnapShot();
-if (world) initUI(world);
+animate();
 
-(function () {
+RAPIER.init().then(() => {
+	physicsWorld = new RAPIER.World(new RAPIER.Vector3(0, -9.8, 0));
+
 	const groundColliderDesc = RAPIER.ColliderDesc.cuboid(
 		10.0,
 		0.1,
 		10.0
 	).setTranslation(0, -4, 0);
 	physicsWorld.createCollider(groundColliderDesc);
-})();
 
-animate();
+	applySnapShot();
+
+	if (world) initUI(world);
+});

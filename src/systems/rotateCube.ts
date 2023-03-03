@@ -6,7 +6,7 @@ import { RigidBody, SpinningCube } from "../schemas";
 const cube = createQuery(RigidBody, SpinningCube);
 export function rotateCube() {
 	cube((_entity, [handle, _tag]) => {
-		const rb = physicsWorld.bodies.get(handle.handle);
+		const rb = physicsWorld!.bodies.get(handle.handle);
 		if (!rb) return;
 
 		const rot = rb.rotation();

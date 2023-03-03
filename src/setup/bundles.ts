@@ -24,7 +24,7 @@ export const PhysicsBox = defineBundle(
 			1.5,
 			0.0
 		);
-		const rigidBody = physicsWorld.createRigidBody(rigidBodyDesc);
+		const rigidBody = physicsWorld!.createRigidBody(rigidBodyDesc);
 		// let handle = component(RigidBody, {handle: rigidBody.handle} );
 
 		console.log("attach rb");
@@ -34,7 +34,7 @@ export const PhysicsBox = defineBundle(
 
 		// Create a cuboid collider attached to the dynamic rigidBody.
 		const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5);
-		physicsWorld.createCollider(colliderDesc, rigidBody);
+		physicsWorld!.createCollider(colliderDesc, rigidBody);
 
 		// world.attach(entity, mesh)
 
@@ -54,7 +54,9 @@ export const PhysicsBox = defineBundle(
 			w: 0,
 		});
 	},
-	() => {return}
+	() => {
+		return;
+	}
 );
 
 export const SpecialBox = defineBundle(
@@ -97,7 +99,7 @@ export const SpecialBox = defineBundle(
 				0.0,
 				0.0
 			);
-		const rigidBody = physicsWorld.createRigidBody(rigidBodyDesc);
+		const rigidBody = physicsWorld!.createRigidBody(rigidBodyDesc);
 
 		// let handle = component(RigidBody, {handle: rigidBody.handle} );
 		// world.attach(entity, handle)
@@ -108,7 +110,9 @@ export const SpecialBox = defineBundle(
 
 		// Create a cuboid collider attached to the dynamic rigidBody.
 		const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5);
-		physicsWorld.createCollider(colliderDesc, rigidBody);
+		physicsWorld!.createCollider(colliderDesc, rigidBody);
 	},
-	() => {return}
+	() => {
+		return;
+	}
 );

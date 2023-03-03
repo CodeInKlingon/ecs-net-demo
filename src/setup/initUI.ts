@@ -10,12 +10,12 @@ import { spawnStaticCube } from "./scene";
 
 export function initUI(world: World) {
 	function spawn() {
-		let newEntity = world.create();
-		let bundleComponent = component(Bundle, { id: PhysicsBox });
+		const newEntity = world.create();
+		const bundleComponent = component(Bundle, { id: PhysicsBox });
 		world.attach(newEntity, bundleComponent);
 	}
 
-	let appRoot = document.querySelector("#app") as HTMLElement;
+	const appRoot = document.querySelector("#app") as HTMLElement;
 
 	const [isHost, setIsHost] = createSignal(false);
 	const [isClient, setIsClient] = createSignal(false);
@@ -40,7 +40,7 @@ export function initUI(world: World) {
 			console.log("user joined my room: ", conn.connectionId);
 
 			conn.on("open", function () {
-				let snap = world.createSnapshot();
+				const snap = world.createSnapshot();
 				console.log("snapshot sending", snap);
 				conn.send({
 					type: MessageType.Snapshot,
@@ -58,7 +58,7 @@ export function initUI(world: World) {
 	function joinRoom() {
 		setIsClient(true);
 		console.log(roomCode());
-		let conn = peer.connect(roomCode());
+		const conn = peer.connect(roomCode());
 		conn.on("open", function () {
 			// Receive messages
 			conn.on("data", function (data: any) {

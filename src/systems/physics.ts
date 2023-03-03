@@ -7,7 +7,7 @@ const bodies = createQuery(Position, Rotation, RigidBody);
 export default (_world: World) => {
 	//apply physics transformation to components
 	bodies((_entity, [position, rotation, rigidbody]) => {
-		let rb = physicsWorld.getRigidBody(rigidbody.handle);
+		const rb = physicsWorld.getRigidBody(rigidbody.handle);
 
 		if (!rb) return;
 

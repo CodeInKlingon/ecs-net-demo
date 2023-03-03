@@ -6,14 +6,14 @@ import { RigidBody, SpinningCube } from "../schemas";
 const cube = createQuery(RigidBody, SpinningCube);
 export function rotateCube() {
 	cube((_entity, [handle, _tag]) => {
-		let rb = physicsWorld.bodies.get(handle.handle);
+		const rb = physicsWorld.bodies.get(handle.handle);
 		if (!rb) return;
 
-		let rot = rb!.rotation();
+		const rot = rb.rotation();
 		const q = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w);
 
 		q.multiply(new THREE.Quaternion(1, 1, 0.01, 0.01));
 
-		rb!.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
+		rb.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
 	});
 }

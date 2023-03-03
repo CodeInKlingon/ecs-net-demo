@@ -8,17 +8,17 @@ const objects = createQuery(Position, Rotation, Mesh);
 export default (_world: World) => {
 	//apply component translation to three objects
 	objects((_entity, [position, rotation, id]) => {
-		let object = scene.getObjectById(id.id);
+		const object = scene.getObjectById(id.id);
 
 		if (!object) return;
 
 		object?.position.set(position.x, position.y, position.z);
 		object?.setRotationFromQuaternion(
 			new THREE.Quaternion(
-				rotation!.x,
-				rotation!.y,
-				rotation!.z,
-				rotation!.w
+				rotation.x,
+				rotation.y,
+				rotation.z,
+				rotation.w
 			)
 		);
 	});

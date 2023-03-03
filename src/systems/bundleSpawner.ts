@@ -10,7 +10,7 @@ export const bundleSpawner = (world: World) => {
 		bundles,
 		(entity, [bundleComponent]) => {
 			if (bundleMap.has(bundleComponent.id)) {
-				let bundle = bundleMap.get(bundleComponent.id);
+				const bundle = bundleMap.get(bundleComponent.id);
 				bundle?.create(world, entity);
 			} else {
 				console.log(
@@ -20,7 +20,7 @@ export const bundleSpawner = (world: World) => {
 		},
 		(e, [bundleComponent]) => {
 			if (bundleMap.has(bundleComponent.id)) {
-				let bundle = bundleMap.get(bundleComponent.id);
+				const bundle = bundleMap.get(bundleComponent.id);
 				bundle?.destroy(world, e);
 			}
 		} // entity no longer matches query `spooky`
@@ -45,7 +45,7 @@ export function attachOrSetComponent(
 			"while spawning bundle. entity doesn't have this component yet",
 			comp
 		);
-		let c = component(comp, value);
+		const c = component(comp, value);
 		world.attach(entity, c);
 	}
 }

@@ -3,7 +3,7 @@ import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import { Peer } from "peerjs";
 
-export const peer = new Peer();
+export const peer = new Peer()
 
 await RAPIER.init();
 
@@ -50,16 +50,16 @@ function animate() {
 	requestAnimationFrame(animate);
 	const t2 = performance.now();
 
-	world!.step(t2 - (t1 ?? t2));
+	if (world) world.step(t2 - (t1 ?? t2));
 	t1 = t2;
 }
 
 //init ecs world
 applySnapShot();
-initUI(world!);
+if (world) initUI(world);
 
 (function () {
-	let groundColliderDesc = RAPIER.ColliderDesc.cuboid(
+	const groundColliderDesc = RAPIER.ColliderDesc.cuboid(
 		10.0,
 		0.1,
 		10.0

@@ -1,34 +1,33 @@
-import { string, number } from "@javelin/ecs"
+import { string, number } from "@javelin/ecs";
 
 export const Position = {
-    x: number,
-    y: number,
-    z: number
-}
+	x: number,
+	y: number,
+	z: number,
+};
 
 export const Rotation = {
-    x: number,
-    y: number,
-    z: number,
-    w: number
-}
-
+	x: number,
+	y: number,
+	z: number,
+	w: number,
+};
 
 export const RigidBody = {
-    handle: number
-}
+	handle: number,
+};
 
 export const Collider = {
-    handle: number
-}
+	handle: number,
+};
 
 export const Mesh = {
-    id: number
-}
+	id: number,
+};
 
 export const Bundle = {
-    id: string
-}
+	id: string,
+};
 
 //This is esentially just a tag. So I can find this specific object later
-export const SpinningCube = {a: number};
+export const SpinningCube = { a: number };

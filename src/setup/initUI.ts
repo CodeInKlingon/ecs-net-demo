@@ -86,19 +86,27 @@ export function initUI (world: World) {
     const App = () => {
 
         return html`
+        <div>
             <button onClick=${spawn} disabled=${() => (!isHost())} >Spawn Cube</button>
             <button onClick=${host} disabled=${() => (isHost() || isClient())}>
                 ${ () => (isHost() ? "Hosting" : "Host a match")} 
             </button>
             ${ () => {return isHost() ? "Room code: " + peer.id : ""}}
-            <input  value=${() => roomCode()}
-            onInput=${(e: any) => setRoomCode(e.target.value) } />
+        </div>
+        <div>
+
             <button 
                 onClick=${() => joinRoom()} 
                 disabled=${() => (isHost() || isClient())}
             >
                 ${ () => (isClient() ? "In match" : "Join a match")}
             </button>
+            <input
+                value=${() => roomCode()}
+                onInput=${(e: any) => setRoomCode(e.target.value) }
+                placeholder="Enter host id"
+            />
+        </div>
         `;
 
       };

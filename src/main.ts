@@ -5,23 +5,26 @@ import { Peer } from "peerjs";
 
 export const peer = new Peer();
 
-
+export const state = {
+	world: undefined
+}
   
 await RAPIER.init();
 
-import { createWorld, World, createQuery } from "@javelin/ecs";
+import { createWorld, World } from "@javelin/ecs";
 import threeRenderSystem from './systems/threeRenderSystem';
-import { RigidBody, SpinningCube } from './schemas';
 import physics from './systems/physics';
 import { initUI } from './setup/initUI';
 import { bundleSpawner } from './systems/bundleSpawner';
 import { bundleMap } from './setup/prefab';
+import { rotateCube } from './systems/rotateCube';
 
 console.log(bundleMap)
 
 export let world: World | undefined;
 
-export function applySnapShot(snapshot: any = {}){
+export async function applySnapShot(snapshot: any = {}){
+	requestAnimationFrame( () => {});
 	if(world)
 		world.reset();
 	world = createWorld({snapshot: snapshot})
@@ -30,7 +33,7 @@ export function applySnapShot(snapshot: any = {}){
 	world.addSystem(physics)
 	world.addSystem(threeRenderSystem)
 }
-applySnapShot();
+
 
 export const physicsWorld = new RAPIER.World(new RAPIER.Vector3(0,-9.8,0));
 
@@ -44,35 +47,27 @@ document.body.appendChild( renderer.domElement );
 
 camera.position.z = 5;
 
-// spawnStaticCube(world);
-initUI(world!)
-
+let t1: number
 function animate() {
-  requestAnimationFrame( animate );
+	
+	requestAnimationFrame( animate );
+	const t2 = performance.now()
 
-  world!.step();
+	world!.step(t2 - (t1 ?? t2))
+	t1 = t2
 }
 
 
-const cube = createQuery( RigidBody, SpinningCube)
-function rotateCube (world: World) {
-	cube((entity, [handle, _]) => {
-        let rb = physicsWorld.bodies.get(handle.handle);
-        // console.log(handle)
-		if(!rb) return
-		
-        let rot = rb!.rotation();
-        const q = new THREE.Quaternion(rot.x,rot.y,rot.z,rot.w);
+//init ecs world
+applySnapShot();
+initUI(world!);
 
-        q.multiply(new THREE.Quaternion(1,1,0.01,0.01))
-        
-        rb!.setRotation(
-            {x: q.x,y: q.y, z: q.z, w: q.w},
-            true
-        );
-	});
-}
-// world.addSystem(initScene)
+(function () {
+	console.log("spawn floor")
+	let groundColliderDesc = RAPIER.ColliderDesc.cuboid(10.0, 0.1, 10.0)
+		.setTranslation(0,-4,0)
+	physicsWorld.createCollider(groundColliderDesc);
+})();
 
 animate();
 

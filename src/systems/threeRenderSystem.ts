@@ -5,10 +5,10 @@ import { Position, Rotation, Mesh } from "../schemas";
 
 const objects = createQuery(Position, Rotation, Mesh)
 
-export default (world: World) => {
+export default (_world: World) => {
 
     //apply component translation to three objects
-    objects((entity, [position, rotation, id]) => {
+    objects((_entity, [position, rotation, id]) => {
         let object = scene.getObjectById(id.id);
 
         if(!object) return;

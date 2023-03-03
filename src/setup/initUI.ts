@@ -1,29 +1,16 @@
-import { component, createWorld, World } from '@javelin/ecs';
+import { component, World } from '@javelin/ecs';
 import { Bundle } from '../schemas';
 import { applySnapShot, peer } from '../main';
 
-// import Peer from 'peerjs';
-
 import {
     createSignal,
-    // onCleanup,
   } from "solid-js";
   import { render } from "solid-js/web";
   import html from "solid-js/html";
-// import { defineBundle } from './prefab';
 import { PhysicsBox } from './bundles';
 import { spawnStaticCube } from './scene';
 
 export function initUI (world: World) {
-
-    let button = document.createElement("button");
-    button.innerText = "Spawn Cube";
-
-    button.addEventListener('click', () => {
-
-    });
-
-    
 
     function spawn() {
         let newEntity = world.create();
@@ -76,7 +63,7 @@ export function initUI (world: World) {
     function joinRoom(){
         setIsClient(true);
         console.log(roomCode())
-        var conn = peer.connect(roomCode());
+        let conn = peer.connect(roomCode());
         conn.on('open', function() {
             // Receive messages
             conn.on('data', function(data: any) {
@@ -95,28 +82,17 @@ export function initUI (world: World) {
             conn.send('Hey i just joined! ' + peer.id);
         });
     }
-
-    const name = 'world';
-    // const sayHi = (isHost: boolean, isClient: boolean, peer: Peer, _roomCode: string) => html`
-    //     <button @click=${spawn}>Spawn Cube</button>
-    //     <button @click=${host} ?disabled=${() => isHost() || isClient()} > ${ () => isHost() ? "Hosting" : "Host a match"}</button>
-    //     ${ isHost ? "Room code: " + peer.id : ""}
-    //     <input .value=${roomCode} placeholder="Room to join"></input>
-    //     <button @click=${joinRoom} ?disabled=${isHost() || isClient()} > ${ isHost? "Hosting" : "Join a match"}</button>
-
-    // `;
-
     
     const App = () => {
 
         return html`
-            <button onClick=${spawn}>Spawn Cube</button>
+            <button onClick=${spawn} disabled=${() => (!isHost())} >Spawn Cube</button>
             <button onClick=${host} disabled=${() => (isHost() || isClient())}>
                 ${ () => (isHost() ? "Hosting" : "Host a match")} 
             </button>
             ${ () => {return isHost() ? "Room code: " + peer.id : ""}}
             <input  value=${() => roomCode()}
-            onInput=${(e) => setRoomCode(e.target.value) } />
+            onInput=${(e: any) => setRoomCode(e.target.value) } />
             <button 
                 onClick=${() => joinRoom()} 
                 disabled=${() => (isHost() || isClient())}
@@ -128,6 +104,4 @@ export function initUI (world: World) {
       };
     
     render(App, appRoot);
-    
-    // document.body.prepend(button)
 }

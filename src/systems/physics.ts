@@ -1,14 +1,14 @@
 import { createQuery, World } from "@javelin/ecs";
 import { physicsWorld } from "../main";
-import { Position, RigidBody, Rotation, Mesh } from "../schemas";
+import { Position, RigidBody, Rotation } from "../schemas";
 
 
 const bodies = createQuery(Position, Rotation, RigidBody)
 
-export default (world: World) => {
+export default (_world: World) => {
     
     //apply physics transformation to components
-    bodies((entity, [position, rotation, rigidbody]) => {
+    bodies((_entity, [position, rotation, rigidbody]) => {
         
         let rb = physicsWorld.getRigidBody(rigidbody.handle);
 

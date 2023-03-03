@@ -7,7 +7,6 @@ const cube = createQuery( RigidBody, SpinningCube)
 export function rotateCube () {
 	cube((_entity, [handle, _tag]) => {
         let rb = physicsWorld.bodies.get(handle.handle);
-        // console.log(handle)
 		if(!rb) return
 		
         let rot = rb!.rotation();

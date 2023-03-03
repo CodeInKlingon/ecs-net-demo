@@ -1,13 +1,9 @@
-import './style.css'
+import './style.css';
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from 'three';
 import { Peer } from "peerjs";
 
 export const peer = new Peer();
-
-export const state = {
-	world: undefined
-}
   
 await RAPIER.init();
 
@@ -19,19 +15,19 @@ import { bundleSpawner } from './systems/bundleSpawner';
 import { bundleMap } from './setup/prefab';
 import { rotateCube } from './systems/rotateCube';
 
-console.log(bundleMap)
+console.log(bundleMap);
 
 export let world: World | undefined;
 
 export async function applySnapShot(snapshot: any = {}){
-	requestAnimationFrame( () => {});
-	if(world)
-		world.reset();
+
+	if(world) world.reset();
+	
 	world = createWorld({snapshot: snapshot})
-	world.addSystem(bundleSpawner)
-	world.addSystem(rotateCube)
-	world.addSystem(physics)
-	world.addSystem(threeRenderSystem)
+	world.addSystem(bundleSpawner);
+	world.addSystem(rotateCube);
+	world.addSystem(physics);
+	world.addSystem(threeRenderSystem);
 }
 
 
@@ -45,7 +41,7 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 
-camera.position.z = 5;
+camera.position.z = 10;
 
 let t1: number
 function animate() {

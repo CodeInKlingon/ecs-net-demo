@@ -20,7 +20,14 @@ export function defineBundle(
 
 	return bundleId;
 }
+/**
+Use if you want the bundle creation function to skip adding this component if it already exists. 
+Returns the component's value.
 
+- ex: ```world.create(j.type(Bundle, Position), MY_Bundle, {x: 10,y: 10,z: 10});```
+
+if the bundle creation uses this function for adding the position component it will skip the bundles default value and use what was defined above. 
+**/
 export function attachOrSkip(
 	world: j.World,
 	entity: j.Entity,
@@ -47,6 +54,9 @@ export function attachOrSkip(
 	}
 }
 
+/**
+Use if you want the bundle creation function to override the value of the component if it already exists. Returns the component's value.
+**/
 export function attachOrSetComponent(
 	world: j.World,
 	entity: j.Entity,
@@ -55,19 +65,11 @@ export function attachOrSetComponent(
 ) {
 	let c = world.has(entity,comp)
 	if (c) {
-		// console.log(
-		// 	"while spawning a bundle. encountered an entity which already has the component we need. set the new value",
-		// 	comp
-		// );
 		let c = world.get(entity,comp)
         c = val;
         return c;
 	} else {
-		// console.log(
-		// 	"while spawning bundle. entity doesn't have this component yet",
-		// 	comp
-		// );
-
 		world.add(entity, comp, val);
+		return val;
 	}
 }

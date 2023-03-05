@@ -9,6 +9,7 @@ import { Bundle, Mesh, Position, Replicate, RigidBody, Rotation, SpinningBox } f
 import { app } from './main';
 import { CameraResource, PeerResource, PhysicsResource, RendererResource, SceneResource } from './resources';
 import { bundleMap } from './utils';
+import { PhysicsBox, SpecialBox } from "./bundles";
 
 export const renderSystem = (world: j.World) => {
     let scene = app.getResource(SceneResource)
@@ -122,18 +123,16 @@ export const physicsSystem = (world: j.World) => {
 
 
 
-import { PhysicsBox, SpecialBox } from "./bundles";
-import { type } from '@javelin/ecs';
 
 export const initUI = (world: j.World) => {
-  const peer = new Peer();
-  app.addResource(PeerResource, peer)
+	const peer = new Peer();
+	app.addResource(PeerResource, peer)
 
 	function spawn() {
 		// const newEntity = world.create();
 		// const bundleComponent = component(Bundle, { id: PhysicsBox });
 		// world.attach(newEntity, bundleComponent);
-    world.create(Bundle, PhysicsBox );
+    	world.create(Bundle, PhysicsBox );
 
 	}
 
@@ -142,40 +141,35 @@ export const initUI = (world: j.World) => {
 	const [isHost, setIsHost] = createSignal(false);
 	const [isClient, setIsClient] = createSignal(false);
 	const [roomCode, setRoomCode] = createSignal("");
-	// let roomCode = "";
-	// console.log(peer)
+
 
 	enum MessageType {
 		Snapshot = 0,
 	}
 
 	function host() {
-		console.log("hi");
 		setIsHost(true);
 
-		// spawnStaticCube(world);
-    world.create(Bundle, SpecialBox );
+    	world.create(Bundle, SpecialBox );
 
 		peer.on("connection", function (conn) {
 			console.log("user joined my room: ", conn.connectionId);
 
 			conn.on("open", function () {
 				const snapshot: {}[] = [];//world.createSnapshot();
-        const replicatedEnts = world.query(Replicate);
-        replicatedEnts.each((ent, comps) => {
-          let entSnapshot:{}[] = []
-          console.log("ent", ent)
-          console.log("comps", comps)
-          comps.forEach(comp => {
-            entSnapshot.push({
-              type: comp,
-              value: world.get(ent, comp),
-            });
-          });
-          snapshot.push({entity: ent, components: entSnapshot})
-          
-        })
-        // console.log(world.graph.nodes);
+        		const replicatedEnts = world.query(Replicate);
+				replicatedEnts.each((ent, comps) => {
+					let entSnapshot:{}[] = []
+					console.log("ent", ent)
+					console.log("comps", comps)
+					comps.forEach(comp => {
+						entSnapshot.push({
+							type: comp,
+							value: world.get(ent, comp),
+						});
+					});
+					snapshot.push({entity: ent, components: entSnapshot});
+				});
 				console.log("snapshot sending", snapshot);
 				conn.send({
 					type: MessageType.Snapshot,
@@ -200,42 +194,37 @@ export const initUI = (world: j.World) => {
 				console.log("Received", data);
 
 				if (data.type == MessageType.Snapshot) {
-          console.log(Bundle);
 					console.log("Received snapshot", data.data);
-          // for(let e = 0; e < data.data.length; e++){
 
-          // }
-          data.data.forEach(entitySnapshot => {
-            //batch create new ent
-            // let types = entitySnapshot.components.map(a => a['type']);
-            // let values = entitySnapshot.components.map(a => a['value']);
-            // let e = world.create(j.type(types), ...values)
-            // console.log(...types,...values)
-            
-            //just first comp - this works! but why nto the others?!
-            let ent = world.create(entitySnapshot.components[0].type, entitySnapshot.components[0].value);
-            console.log(entitySnapshot.components[0].type, entitySnapshot.components[0].value);
-            console.log("ent snap comps",entitySnapshot.components[0]);
-            //if I add the rest it breaks
-            // for(let i = 1; i < entitySnapshot.components.length; i++) {
-            //   console.log("ent snap comps",entitySnapshot.components[i]);
-            //   world.add(ent, entitySnapshot.components[i]['type'], entitySnapshot.components[i]['value'] )
-            //   console.log(entitySnapshot.components[i]['type'], entitySnapshot.components[i]['value']);
-            // }
+					data.data.forEach(entitySnapshot => {
+						//batch create new ent
+						let types = entitySnapshot.components.map(a => a.type);
+						let values: any[] = entitySnapshot.components.map(a => a.value);
+						// debugger;
+						let e = world.create(j.type(...types), ...values)
+						console.log(...types,...values)
+						
+						//just first comp - this works! but why not the others?!
+						// let ent = world.create(entitySnapshot.components[0].type, entitySnapshot.components[0].value);
+						// console.log(entitySnapshot.components[0].type, entitySnapshot.components[0].value);
+						// console.log("ent snap comps",entitySnapshot.components[0]);
+						
+						//but if I add the rest it breaks
+						// for(let i = 1; i < entitySnapshot.components.length; i++) {
+						//   console.log("ent snap comps",entitySnapshot.components[i]);
+						//   world.add(ent, entitySnapshot.components[i].type, entitySnapshot.components[i].value )
+						//   console.log(entitySnapshot.components[i].type, entitySnapshot.components[i].value);
+						// }
 
-            //loop style
-            // let newEnt = world.create();
-            // entitySnapshot.components.forEach(compSnapshot => {
-            //   world.add(newEnt, compSnapshot.type, compSnapshot.value)
-            //   console.log("type:", compSnapshot.type)
-            //   console.log("value:", compSnapshot.value)
-            // });
+						//loop style. add one by one
+						// let newEnt = world.create();
+						// entitySnapshot.components.forEach(compSnapshot => {
+						//   world.add(newEnt, compSnapshot.type, compSnapshot.value)
+						//   console.log("type:", compSnapshot.type)
+						//   console.log("value:", compSnapshot.value)
+						// });
 
-          });
-					// world.reset();
-          // world.graph.nodes = data.data;
-					// world = createWorld({ snapshot: data.data });
-					// applySnapShot(data.data);
+					});
 				}
 			});
 
@@ -276,8 +265,8 @@ export const initUI = (world: j.World) => {
 		`;
 	};
 
-  peer.on('open', function(id) {
-    console.log('My peer ID is: ' + id);
-    render(App, appRoot);
-  });
+	peer.on('open', function(id) {
+		console.log('My peer ID is: ' + id);
+		render(App, appRoot);
+	});
 }

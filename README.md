@@ -99,7 +99,7 @@ The `nextStep` function accepts a callback as its parameter. It operates using a
 ```typescript
 world.create();
 nextStep(()=>{
-    console.log("Entitys this step", world.query().length); //1
+    console.log("Entities this step", world.query().length); //1
 });
-console.log("Entitys this step", world.query().length); //0
+console.log("Entities this step", world.query().length); //0
 ```

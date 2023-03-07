@@ -20,9 +20,9 @@ npm run dev
 
 Table of contents
 
-- [Bundle Component](##bundle-component)
-- [Replicate Component](##replicate-component)
-- [nextStep Function](##nextstep-function)
+- [Bundle Component](#bundle-component)
+- [Replicate Component](#replicate-component)
+- [nextStep Function](#nextstep-function)
 ## Bundle Component
 I'm not fully settled on the word bundles. Bundles allow you to repeatably build up and tear down entities with components and their integrations with 3rd party libraries. 
 

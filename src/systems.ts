@@ -1,68 +1,77 @@
-import * as j from '@javelin/ecs';
+import * as j from "@javelin/ecs";
+import { Component, Value } from "@javelin/ecs/dist/declarations/src/component";
+
 import * as THREE from "three";
 import { Peer } from "peerjs";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import html from "solid-js/html";
 
-import { Bundle, Mesh, Position, Replicate, RigidBody, Rotation, SpinningBox } from './components';
-import { app } from './main';
-import { CameraResource, PeerResource, PhysicsResource, RendererResource, SceneResource } from './resources';
-import { bundleMap } from './utils';
+import {
+	Bundle,
+	Mesh,
+	Position,
+	Replicate,
+	RigidBody,
+	Rotation,
+	SpinningBox,
+} from "./components";
+import { app } from "./main";
+import {
+	CameraResource,
+	PeerResource,
+	PhysicsResource,
+	RendererResource,
+	SceneResource,
+} from "./resources";
+import { addBundle } from "./utils";
 import { PhysicsBox, SpecialBox } from "./bundles";
 
 export const renderSystem = (world: j.World) => {
-    let scene = app.getResource(SceneResource)
-    let camera = app.getResource(CameraResource)
-    let renderer = app.getResource(RendererResource)
-  
-    if(!renderer|| !scene || !camera) return;
-    let meshes = world.query(Position, Rotation, Mesh);
-    meshes.each((_entity, position, rotation, meshId) => {
-      let mesh = scene!.getObjectById(meshId);
-      if(!mesh) return;
-      
-      // console.log(rotation)
-      mesh.position.set(position.x, position.y, position.z);
-      mesh.setRotationFromQuaternion(
-        new THREE.Quaternion(
-            rotation.x,
-            rotation.y,
-            rotation.z,
-            rotation.w
-        )
-    );
-    });
+	let scene = app.getResource(SceneResource);
+	let camera = app.getResource(CameraResource);
+	let renderer = app.getResource(RendererResource);
 
-    renderer.render(scene, camera);
+	if (!renderer || !scene || !camera) return;
+	let meshes = world.query(Position, Rotation, Mesh);
+	meshes.each((_entity, position, rotation, meshId) => {
+		let mesh = scene!.getObjectById(meshId);
+		if (!mesh) return;
+
+		mesh.position.set(position.x, position.y, position.z);
+		mesh.setRotationFromQuaternion(
+			new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
+		);
+	});
+
+	renderer.render(scene, camera);
 };
 
-  
 export const initThreeSystem = () => {
-    let camera = app.getResource(CameraResource)
-    let renderer = app.getResource(RendererResource)
-  
-    if(!camera){
-      camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
-    }
-    
-    camera.position.z = 10;
-  
-    renderer!.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer!.domElement);
+	let camera = app.getResource(CameraResource);
+	let renderer = app.getResource(RendererResource);
+
+	if (!camera) {
+		camera = new THREE.PerspectiveCamera(
+			75,
+			window.innerWidth / window.innerHeight,
+			0.1,
+			1000
+		);
+	}
+
+	camera.position.z = 10;
+
+	renderer!.setSize(window.innerWidth, window.innerHeight);
+	document.body.appendChild(renderer!.domElement);
 };
 
-export const rotateCube = (world : j.World) => {
-  let physicsWorld = app.getResource(PhysicsResource);
+export const rotateCube = (world: j.World) => {
+	let physicsWorld = app.getResource(PhysicsResource);
 
-  if(!physicsWorld) return;
+	if (!physicsWorld) return;
 
-  const cube = world.query(RigidBody, SpinningBox);
+	const cube = world.query(RigidBody, SpinningBox);
 	cube.each((_entity, handle) => {
 		const rb = physicsWorld!.bodies.get(handle);
 		if (!rb) return;
@@ -73,37 +82,27 @@ export const rotateCube = (world : j.World) => {
 		q.multiply(new THREE.Quaternion(1, 1, 0.01, 0.01));
 
 		rb.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
-  });
+	});
 };
 
 //bundle managemnet system. spawns and de spawns entities with bundle components using a monitor
 export const bundleSpawner = (world: j.World) => {
-  // const bundles = world.query(Bundle);
-
-  world.monitor(Bundle).eachIncluded((entity) => {
-    let bundleId = world.get(entity, Bundle);
-
-    if (bundleId && bundleMap.has(bundleId)) {
-      const bundle = bundleMap.get(bundleId);
-      bundle?.create(world, entity);
-    } else {
-      console.log(
-        "tried to spawn a bundle but couldn't find the definition", bundleId
-      );
-    }
-  });
-
+	world.monitor(Bundle).eachIncluded((entity) => {
+		let bundleId = world.get(entity, Bundle);
+		console.log(
+			"monitor encountered a new bundle. kicking off the bundle spawning"
+		);
+		addBundle(world, entity, bundleId!);
+	});
 };
 
-
 export const physicsSystem = (world: j.World) => {
+	let physicsWorld = app.getResource(PhysicsResource);
 
-  let physicsWorld = app.getResource(PhysicsResource)
-  
-  if (!physicsWorld) return;
+	if (!physicsWorld) return;
 	//apply physics transformation to components
-  
-  const ents = world.query(Position, Rotation, RigidBody);
+
+	const ents = world.query(Position, Rotation, RigidBody);
 	ents.each((_entity, position, rotation, rigidbody) => {
 		const rb = physicsWorld!.getRigidBody(rigidbody);
 
@@ -121,19 +120,12 @@ export const physicsSystem = (world: j.World) => {
 	physicsWorld!.step();
 };
 
-
-
-
 export const initUI = (world: j.World) => {
 	const peer = new Peer();
-	app.addResource(PeerResource, peer)
+	app.addResource(PeerResource, peer);
 
 	function spawn() {
-		// const newEntity = world.create();
-		// const bundleComponent = component(Bundle, { id: PhysicsBox });
-		// world.attach(newEntity, bundleComponent);
-    	world.create(Bundle, PhysicsBox );
-
+		world.create(Bundle, PhysicsBox);
 	}
 
 	const appRoot = document.querySelector("#app") as HTMLElement;
@@ -142,33 +134,44 @@ export const initUI = (world: j.World) => {
 	const [isClient, setIsClient] = createSignal(false);
 	const [roomCode, setRoomCode] = createSignal("");
 
-
 	enum MessageType {
 		Snapshot = 0,
 	}
 
+	type SnapShotArray = {
+		entity: j.Entity;
+		components: ComponentSnapShot<any>[];
+	}[];
+
+	type ComponentSnapShot<T> = {
+		type: Component<T>;
+		value: Value<T>;
+	};
+
 	function host() {
 		setIsHost(true);
 
-    	world.create(Bundle, SpecialBox );
+		world.create(j.type(Bundle, Position), SpecialBox, {
+			x: 0.5,
+			y: 0,
+			z: 0,
+		});
 
 		peer.on("connection", function (conn) {
 			console.log("user joined my room: ", conn.connectionId);
 
 			conn.on("open", function () {
-				const snapshot: {}[] = [];//world.createSnapshot();
-        		const replicatedEnts = world.query(Replicate);
+				const snapshot: {}[] = []; //world.createSnapshot();
+				const replicatedEnts = world.query(Replicate);
 				replicatedEnts.each((ent, comps) => {
-					let entSnapshot:{}[] = []
-					console.log("ent", ent)
-					console.log("comps", comps)
-					comps.forEach(comp => {
+					let entSnapshot: {}[] = [];
+					comps.forEach((comp) => {
 						entSnapshot.push({
 							type: comp,
 							value: world.get(ent, comp),
 						});
 					});
-					snapshot.push({entity: ent, components: entSnapshot});
+					snapshot.push({ entity: ent, components: entSnapshot });
 				});
 				console.log("snapshot sending", snapshot);
 				conn.send({
@@ -196,34 +199,15 @@ export const initUI = (world: j.World) => {
 				if (data.type == MessageType.Snapshot) {
 					console.log("Received snapshot", data.data);
 
-					data.data.forEach(entitySnapshot => {
-						//batch create new ent
-						let types = entitySnapshot.components.map(a => a.type);
-						let values: any[] = entitySnapshot.components.map(a => a.value);
-						// debugger;
-						let e = world.create(j.type(...types), ...values)
-						console.log(...types,...values)
-						
-						//just first comp - this works! but why not the others?!
-						// let ent = world.create(entitySnapshot.components[0].type, entitySnapshot.components[0].value);
-						// console.log(entitySnapshot.components[0].type, entitySnapshot.components[0].value);
-						// console.log("ent snap comps",entitySnapshot.components[0]);
-						
-						//but if I add the rest it breaks
-						// for(let i = 1; i < entitySnapshot.components.length; i++) {
-						//   console.log("ent snap comps",entitySnapshot.components[i]);
-						//   world.add(ent, entitySnapshot.components[i].type, entitySnapshot.components[i].value )
-						//   console.log(entitySnapshot.components[i].type, entitySnapshot.components[i].value);
-						// }
-
-						//loop style. add one by one
-						// let newEnt = world.create();
-						// entitySnapshot.components.forEach(compSnapshot => {
-						//   world.add(newEnt, compSnapshot.type, compSnapshot.value)
-						//   console.log("type:", compSnapshot.type)
-						//   console.log("value:", compSnapshot.value)
-						// });
-
+					(data.data as SnapShotArray).forEach((entitySnapshot) => {
+						let types = entitySnapshot.components.map(
+							(a) => a.type
+						);
+						let values = entitySnapshot.components.map(
+							(a) => a.value
+						);
+						//@ts-ignore
+						world.create(j.type(...types), ...values);
 					});
 				}
 			});
@@ -236,7 +220,10 @@ export const initUI = (world: j.World) => {
 	const App = () => {
 		return html`
 			<div>
-				<button onClick=${spawn} disabled=${() => (!isHost() && !isClient())}>
+				<button
+					onClick=${spawn}
+					disabled=${() => !isHost() && !isClient()}
+				>
 					Spawn Cube
 				</button>
 				<button
@@ -265,8 +252,8 @@ export const initUI = (world: j.World) => {
 		`;
 	};
 
-	peer.on('open', function(id) {
-		console.log('My peer ID is: ' + id);
+	peer.on("open", function (id) {
+		console.log("My peer ID is: " + id);
 		render(App, appRoot);
 	});
-}
+};

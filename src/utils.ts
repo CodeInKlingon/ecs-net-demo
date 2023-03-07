@@ -1,4 +1,5 @@
 import * as j from "@javelin/ecs";
+import { ValuesInit } from "@javelin/ecs/dist/declarations/src/component";
 
 export const bundleMap = new Map<
 	string,
@@ -28,48 +29,65 @@ Returns the component's value.
 
 if the bundle creation uses this function for adding the position component it will skip the bundles default value and use what was defined above. 
 **/
-export function attachOrSkip(
+export function addIfNotSet<T extends j.Component[]>(
 	world: j.World,
 	entity: j.Entity,
-	comp: any,
-	val: any
-) {
-    let c = world.has(entity,comp)
+	type: j.Type<T>,
+	...values: ValuesInit<T>
+){
+    let c = world.has(entity, type)
 	if (c) {
-		console.log(
-			"while spawning a bundle. encountered an entity which already has the component we need. skip",
-			comp
-		);
-		let c = world.get(entity,comp)
+		let c = world.get<T>(entity, type)
         // c = val;
-        return c;
+        return [c] as ValuesInit<T>;
 	} else {
-		console.log(
-			"while spawning bundle. entity doesn't have this component yet",
-			comp
-		);
-
-		world.add(entity, comp, val);
-        return val;
+		world.add<T>(entity, type, ...values);
+        return values;
+		// return null;
 	}
 }
 
 /**
 Use if you want the bundle creation function to override the value of the component if it already exists. Returns the component's value.
 **/
-export function attachOrSetComponent(
+export function addOrUpdateIfExists<T extends j.Component[]>(
 	world: j.World,
 	entity: j.Entity,
-	comp: any,
-	val: any
-) {
-	let c = world.has(entity,comp)
+	type: j.Type<T>,
+	...values: ValuesInit<T>
+){
+	let c = world.has(entity, type)
 	if (c) {
-		let c = world.get(entity,comp)
-        c = val;
-        return c;
+		let c = world.get<T>(entity, type)
+		c = values as j.ComponentValue<T>;
+        return c as ValuesInit<T>;
 	} else {
-		world.add(entity, comp, val);
-		return val;
+		world.add(entity, type, ...values);
+		return values;
 	}
+}
+
+let nextStepQueue: (() => void)[] = [];
+let thisStepQueue: (() => void)[] = [];
+export const nextStep = (callback: () => void) => {
+	nextStepQueue.push(callback);
+}
+
+export const nextStepSystem = () => {
+	
+	thisStepQueue.forEach( callback => {
+		callback();
+	});
+
+	thisStepQueue = nextStepQueue;
+	nextStepQueue = [];
+}
+
+
+export function addBundle(world: j.World, entity: j.Entity, bundleId: string){
+	//queue this for next step so that other components can be settled first	
+	const bundle = bundleMap.get(bundleId);
+	nextStep(()=>{
+		if (world.exists(entity)) bundle?.create(world, entity);
+	})
 }

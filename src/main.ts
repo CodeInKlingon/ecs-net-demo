@@ -5,11 +5,7 @@ import * as j from '@javelin/ecs';
 import * as THREE from 'three';
 import { CameraResource, PhysicsResource, RendererResource, SceneResource } from './resources';
 import { bundleSpawner, initThreeSystem, initUI, physicsSystem, renderSystem, rotateCube } from './systems';
-import { bundleMap } from './utils';
-import { Bundle, Position, Replicate, Rotation } from './components';
-import { PhysicsBox, SpecialBox } from './bundles';
-
-
+import { bundleMap, nextStep, nextStepSystem } from './utils';
 
 
 export const app = j.app();
@@ -40,31 +36,27 @@ RAPIER.init().then(() => {
 
 
 
-
-let createBoxSystem = (world: j.World) => {
-
-  	// world.create( j.type(Bundle, Position), PhysicsBox, {x:1,y:1, z: 1}  );
-  	world.create( Bundle, PhysicsBox );
-};
-
-let log = (world: j.World) => {
-	let pos = world.query(Position);
+// app.world.daniel = 0;
+let log = (_world: j.World) => {
+	// let pos = world.query(Position);
 	// console.log("number of position components",pos.length);
-
-	
-	let bun = world.query(Bundle);
-	// console.log("number of bundle components",bun.length);
 }
 
 app.addInitSystem(initThreeSystem);
 app.addInitSystem(initUI);
-app.addInitSystem(createBoxSystem);
-
+app.addInitSystem((world)=>{
+    world.create();
+    nextStep(()=>{
+        console.log("Entitys this step", world.query().length); //1
+    });
+    console.log("Entitys this step", world.query().length); //0
+});
+app.addSystem(log);
+app.addSystem(nextStepSystem);
+app.addSystem(bundleSpawner);
 app.addSystem(rotateCube);
 app.addSystem(physicsSystem);
 app.addSystem(renderSystem);
-app.addSystem(bundleSpawner);
-app.addSystem(log);
 
 let loop = () => {
 	app.step();

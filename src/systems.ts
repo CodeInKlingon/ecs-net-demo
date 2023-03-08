@@ -2,7 +2,7 @@ import * as j from "@javelin/ecs";
 import { Component, Value } from "@javelin/ecs/dist/declarations/src/component";
 
 import * as THREE from "three";
-import { Peer } from "peerjs";
+import { DataConnection, Peer } from "peerjs";
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import html from "solid-js/html";
@@ -24,7 +24,7 @@ import {
 	RendererResource,
 	SceneResource,
 } from "./resources";
-import { addBundle } from "./utils";
+import { actions, addBundle, broadcast } from "./utils";
 import { PhysicsBox, SpecialBox } from "./bundles";
 
 export const renderSystem = (world: j.World) => {
@@ -120,23 +120,36 @@ export const physicsSystem = (world: j.World) => {
 	physicsWorld!.step();
 };
 
+export const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number})=>{
+	console.log("This should happen everywhere", position);
+	world.create( j.type( Bundle, Position), PhysicsBox,  position)
+})
+
+export const [isHost, setIsHost] = createSignal(false);
+export const [hostPeer, setHostPeer] = createSignal<DataConnection>();
+export const [peers, setPeers] = createSignal<DataConnection[]>([]);
+
+export enum MessageType {
+	Snapshot = 0,
+	Broadcast = 1,
+}
+
 export const initUI = (world: j.World) => {
 	const peer = new Peer();
 	app.addResource(PeerResource, peer);
 
 	function spawn() {
-		world.create(Bundle, PhysicsBox);
+		// world.create(Bundle, PhysicsBox);
+		spawnPhysicsBox({x: 0, y: 3, z: 0})
+
 	}
 
 	const appRoot = document.querySelector("#app") as HTMLElement;
 
-	const [isHost, setIsHost] = createSignal(false);
 	const [isClient, setIsClient] = createSignal(false);
 	const [roomCode, setRoomCode] = createSignal("");
 
-	enum MessageType {
-		Snapshot = 0,
-	}
+	
 
 	type SnapShotArray = {
 		entity: j.Entity;
@@ -159,7 +172,7 @@ export const initUI = (world: j.World) => {
 
 		peer.on("connection", function (conn) {
 			console.log("user joined my room: ", conn.connectionId);
-
+			setPeers([ conn, ...peers()] )
 			conn.on("open", function () {
 				const snapshot: {}[] = []; //world.createSnapshot();
 				const replicatedEnts = world.query(Replicate);
@@ -209,6 +222,9 @@ export const initUI = (world: j.World) => {
 						//@ts-ignore
 						world.create(j.type(...types), ...values);
 					});
+				} else if (data.type == MessageType.Broadcast) {
+					let action = actions.get(data.data.actionId);
+					action!(world, data.data.context);
 				}
 			});
 

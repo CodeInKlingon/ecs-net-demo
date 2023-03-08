@@ -17,7 +17,7 @@ import {
 	renderSystem,
 	rotateCube,
 } from "./systems";
-import { bundleMap, nextStep, nextStepSystem } from "./utils";
+import { actions, bundleMap, nextStep, nextStepSystem } from "./utils";
 
 export const app = j.app();
 
@@ -50,6 +50,7 @@ RAPIER.init().then(() => {
 let log = (_world: j.World) => {
 	// let pos = world.query(Position);
 	// console.log("number of position components",pos.length);
+    console.log(actions)
 };
 
 app.addInitSystem(initThreeSystem);
@@ -61,7 +62,7 @@ app.addInitSystem((world) => {
 	});
 	console.log("Entitys this step", world.query().length); //0
 });
-app.addSystem(log);
+app.addInitSystem(log);
 app.addSystem(nextStepSystem);
 app.addSystem(bundleSpawner);
 app.addSystem(rotateCube);

@@ -1,7 +1,8 @@
 import * as j from "@javelin/ecs";
 import { ValuesInit } from "@javelin/ecs/dist/declarations/src/component";
-import { PhysicsBox } from "./bundles";
-import { Bundle, Position } from "./components";
+import { app } from "./main";
+import { isHost, MessageType, peers } from "./systems";
+export const actions = new Map<number, (world: j.World, data: any) => void>();
 
 export const bundleMap = new Map<
 	string,
@@ -102,7 +103,6 @@ export function addBundle(world: j.World, entity: j.Entity, bundleId: string){
 
 
 
-export const actions = new Map<number, (world: j.World, data: any) => void>();
 
 
 export function broadcast<T>( callback: (world: j.World, data: T) => void ){
@@ -114,15 +114,22 @@ export function broadcast<T>( callback: (world: j.World, data: T) => void ){
 function boradcastAction<T>(actionId: number, context: T){
 	let action = actions.get(actionId);
 	console.log("do the messaging stuff here")
-
-	console.log("in a message receiver")
-	let world = j.app().world;
-	action!(world, context)
+	if(isHost()){
+		console.log("is host");
+		peers().forEach((conn) => {
+			console.log("send to conn");
+			conn.send({
+				type: MessageType.Broadcast,
+				data: {
+					actionId: actionId,
+					context: context
+				}
+			})
+		});
+		action!(app.world, context);
+	}
+	// console.log("in a message receiver")
+	// let world = j.app().world;
+	// action!(world, context)
 }
 
-const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number})=>{
-	console.log("This should happen everywhere", position);
-	world.create( j.type( Position),  position)
-})
-
-spawnPhysicsBox({x: 3, y: 10, z: 0})

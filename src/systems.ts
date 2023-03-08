@@ -132,6 +132,7 @@ export const [peers, setPeers] = createSignal<DataConnection[]>([]);
 export enum MessageType {
 	Snapshot = 0,
 	Broadcast = 1,
+	BroadcastRequest = 2,
 }
 
 export const initUI = (world: j.World) => {
@@ -193,7 +194,17 @@ export const initUI = (world: j.World) => {
 				});
 			});
 
-			conn.on("data", function (data) {
+			conn.on("data", function (data: any) {
+
+				if(data.type == MessageType.BroadcastRequest){
+					peers().forEach((peer)=>{
+						//assume peer executed this action
+						if(peer != conn)
+							peer.send(data)
+					})
+					let action = actions.get(data.data.actionId);
+					action!(world, data.data.context);
+				}
 				// Will print 'hi!'
 				console.log(conn.connectionId, " says ", data);
 			});
@@ -206,6 +217,7 @@ export const initUI = (world: j.World) => {
 		const conn = peer.connect(roomCode());
 		conn.on("open", function () {
 			// Receive messages
+			setHostPeer(conn);
 			conn.on("data", function (data: any) {
 				console.log("Received", data);
 

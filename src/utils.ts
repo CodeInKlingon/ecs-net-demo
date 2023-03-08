@@ -1,7 +1,7 @@
 import * as j from "@javelin/ecs";
 import { ValuesInit } from "@javelin/ecs/dist/declarations/src/component";
 import { app } from "./main";
-import { isHost, MessageType, peers } from "./systems";
+import { hostPeer, isHost, MessageType, peers } from "./systems";
 export const actions = new Map<number, (world: j.World, data: any) => void>();
 
 export const bundleMap = new Map<
@@ -115,7 +115,6 @@ function boradcastAction<T>(actionId: number, context: T){
 	let action = actions.get(actionId);
 	console.log("do the messaging stuff here")
 	if(isHost()){
-		console.log("is host");
 		peers().forEach((conn) => {
 			console.log("send to conn");
 			conn.send({
@@ -127,9 +126,17 @@ function boradcastAction<T>(actionId: number, context: T){
 			})
 		});
 		action!(app.world, context);
+	}else{
+		hostPeer()?.send({
+			type: MessageType.BroadcastRequest,
+			data: {
+				actionId: actionId,
+				context: context
+			}
+		})
+		//assume peer executed this action
+		action!(app.world, context);
+
 	}
-	// console.log("in a message receiver")
-	// let world = j.app().world;
-	// action!(world, context)
 }
 

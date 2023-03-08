@@ -4,6 +4,8 @@ This project is a proof of concept for the combination of these js libraries for
 
 The game behaviour is implemented using the javelin ecs library with solid-js used for a simple ui. Peerjs allows for players to join matches with eachother. One player picks the host option and is shown their room id. The other player enters that code into the join room text box and clicks join to connect with the host. The host initially sends a snapshot of the ecs world to the joining player so they can start the comunication loop with a world that is synched.
 
+Actions can be defined as functions that are broadcast to each connected player and can be initiated from either host or client.
+
 
 ## Getting started
 
@@ -23,6 +25,7 @@ Table of contents
 - [Bundle Component](#bundle-component)
 - [Replicate Component](#replicate-component)
 - [nextStep Function](#nextstep-function)
+- [broadcast Function](#broadcast-function)
 ## Bundle Component
 I'm not fully settled on the word bundles. Bundles allow you to repeatably build up and tear down entities with components and their integrations with 3rd party libraries. 
 
@@ -103,3 +106,34 @@ nextStep(()=>{
 });
 console.log("Entities this step", world.query().length); //0
 ```
+
+## broadcast Function
+
+The `broadcast` function allows you to define actions anywhere in your code that should be executed by all clients of the game. The action can be initiated by any client as well. This cuts down on a lot of boilerplate code needing to be created.
+
+Actions are defined like so:
+```typescript
+const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number}) => {
+	console.log("This should happen everywhere", position);
+	if(isHost()){
+		//host can check for some condition and return false to prevent the action from being broadcast
+		// return false;
+	}
+	world.create( j.type( Bundle, Position), PhysicsBox,  position)
+	return true;
+})
+```
+
+And initiated like this:
+
+```typescript
+spawnPhysicsBox({x: 0, y: 3, z: 0})
+```
+
+Notice the action's callback returns true or false. That is used by the host to control whether the action should be broadcasted to the clients. When a client initiates an action it is actually just asking the host if it can do the action. The host then initiates the action and only broadcasts the action to clients if the action returns true.
+
+Data that is required inside the action from the initiator should be passed in as a parameter. In the example above we pass in a position object. This allows actions to have parameters. 
+
+Its important to note that the action will not neccessarily be completed in the same way by each client. The ecs worlds are not the same.
+
+more to come on how to overcome those challenges.

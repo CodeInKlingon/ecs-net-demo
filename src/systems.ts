@@ -122,7 +122,14 @@ export const physicsSystem = (world: j.World) => {
 
 export const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number})=>{
 	console.log("This should happen everywhere", position);
+	if(isHost()){
+		//host can check for some condition and return false to prevent the action from being broadcast
+		// return false;
+	}
 	world.create( j.type( Bundle, Position), PhysicsBox,  position)
+	return true;
+
+	//return false if this wasn't allowed
 })
 
 export const [isHost, setIsHost] = createSignal(false);
@@ -197,13 +204,20 @@ export const initUI = (world: j.World) => {
 			conn.on("data", function (data: any) {
 
 				if(data.type == MessageType.BroadcastRequest){
-					peers().forEach((peer)=>{
-						//assume peer executed this action
-						if(peer != conn)
-							peer.send(data)
-					})
-					let action = actions.get(data.data.actionId);
-					action!(world, data.data.context);
+					const action = actions.get(data.data.actionId);
+					const result = action!(world, data.data.context);
+					if(result){
+						peers().forEach((peer)=>{
+							//assume peer executed this action
+							// if(peer != conn)
+							peer.send({
+								type: MessageType.Broadcast,
+								data: data.data
+							})
+						});
+					}{
+						console.log("host denied an action from being broadcast", data.data.actionId)
+					}
 				}
 				// Will print 'hi!'
 				console.log(conn.connectionId, " says ", data);

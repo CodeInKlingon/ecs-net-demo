@@ -2,7 +2,6 @@ import * as j from "@javelin/ecs";
 import { ValuesInit } from "@javelin/ecs/dist/declarations/src/component";
 import { app } from "./main";
 import { hostPeer, isHost, MessageType, peers } from "./systems";
-export const actions = new Map<number, (world: j.World, data: any) => void>();
 
 export const bundleMap = new Map<
 	string,
@@ -102,10 +101,11 @@ export function addBundle(world: j.World, entity: j.Entity, bundleId: string){
 //entity component values changed (components tagged for replication)
 
 
+export const actions = new Map<number, (world: j.World, data: any) => boolean>();
 
 
 
-export function broadcast<T>( callback: (world: j.World, data: T) => void ){
+export function broadcast<T>( callback: (world: j.World, data: T) => boolean ){
 	let id = actions.size + 1;
 	actions.set(id, callback);
 	return (data: T) => boradcastAction(id, data )
@@ -135,7 +135,7 @@ function boradcastAction<T>(actionId: number, context: T){
 			}
 		})
 		//assume peer executed this action
-		action!(app.world, context);
+		// action!(app.world, context);
 
 	}
 }

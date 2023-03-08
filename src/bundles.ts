@@ -13,7 +13,7 @@ export const PhysicsBox = defineBundle(
         let physicsWorld = app.getResource(PhysicsResource);
         if (!scene || !physicsWorld) return;
 
-		addOrUpdateIfExists(world, entity, Replicate, [Bundle, Position, Rotation]);
+		addOrUpdateIfExists(world, entity, Replicate, { hostEntity: entity, components: [Bundle, Position, Rotation]});
 	
 		let [position] = addIfNotSet(world, entity, Position, { x: 0, y: 1.5, z: 0 });
 
@@ -58,7 +58,7 @@ export const SpecialBox = defineBundle(
         let physicsWorld = app.getResource(PhysicsResource);
         if (!scene || !physicsWorld) return;
 
-		addOrUpdateIfExists(world, entity, Replicate, [Bundle, Position, Rotation]);
+		addOrUpdateIfExists(world, entity, Replicate, { hostEntity: entity, components: [Bundle, Position, Rotation]});
 
 		const [position] = addIfNotSet(world, entity, Position, { x: 0, y: 0, z: 0 });
 

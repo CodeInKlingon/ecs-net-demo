@@ -22,4 +22,7 @@ export const Bundle = j.value<string>();
 export const SpinningBox = j.tag();
 
 // export const Replicate = j.value<j.QueryTerms[]>();
-export const Replicate = j.value<j.Singleton<any>[]>()
+export const Replicate = j.value<{
+    hostEntity: j.Entity,
+    components: j.Singleton<any>[]
+}>()

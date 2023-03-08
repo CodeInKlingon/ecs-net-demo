@@ -1,5 +1,7 @@
 import * as j from "@javelin/ecs";
 import { ValuesInit } from "@javelin/ecs/dist/declarations/src/component";
+import { PhysicsBox } from "./bundles";
+import { Bundle, Position } from "./components";
 
 export const bundleMap = new Map<
 	string,
@@ -91,3 +93,36 @@ export function addBundle(world: j.World, entity: j.Entity, bundleId: string){
 		if (world.exists(entity)) bundle?.create(world, entity);
 	})
 }
+
+
+//ecs updates messages
+//entity added (tagged for replication)
+//entity removed (tagged for replication)
+//entity component values changed (components tagged for replication)
+
+
+
+export const actions = new Map<number, (world: j.World, data: any) => void>();
+
+
+export function broadcast<T>( callback: (world: j.World, data: T) => void ){
+	let id = actions.size + 1;
+	actions.set(id, callback);
+	return (data: T) => boradcastAction(id, data )
+}
+
+function boradcastAction<T>(actionId: number, context: T){
+	let action = actions.get(actionId);
+	console.log("do the messaging stuff here")
+
+	console.log("in a message receiver")
+	let world = j.app().world;
+	action!(world, context)
+}
+
+const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number})=>{
+	console.log("This should happen everywhere", position);
+	world.create( j.type( Position),  position)
+})
+
+spawnPhysicsBox({x: 3, y: 10, z: 0})

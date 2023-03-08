@@ -65,7 +65,7 @@ Both functions return the resulting values of the component/type. This is very u
 
 Because bundle components modify their entity composition these functions cut down on boilerplate code for common actions. I might want to use `addIfNotSet` on a component like `Position` so that I can customize the position with new instances. ex:
 ```typescript
-world.create(j.Type(Bundle, Position), Enemy_Bundle, {x: spawnPoint[i].x, y: spawnPoint[i].y})
+world.create(j.type(Bundle, Position), Enemy_Bundle, {x: spawnPoint[i].x, y: spawnPoint[i].y})
 ```
 An example of when you might use `addOrUpdateIfExists` is for a component that should always be set by the content of your bundle function. ex:
 ```typescript

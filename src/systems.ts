@@ -163,15 +163,15 @@ export const initUI = (world: j.World) => {
 			conn.on("open", function () {
 				const snapshot: {}[] = []; //world.createSnapshot();
 				const replicatedEnts = world.query(Replicate);
-				replicatedEnts.each((ent, comps) => {
+				replicatedEnts.each((entity, comps) => {
 					let entSnapshot: {}[] = [];
-					comps.forEach((comp) => {
+					comps.components.forEach((comp) => {
 						entSnapshot.push({
 							type: comp,
-							value: world.get(ent, comp),
+							value: world.get(entity, comp),
 						});
 					});
-					snapshot.push({ entity: ent, components: entSnapshot });
+					snapshot.push({ entity: comps.hostEntity, components: entSnapshot });
 				});
 				console.log("snapshot sending", snapshot);
 				conn.send({

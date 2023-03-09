@@ -15,6 +15,7 @@ import {
 	RigidBody,
 	Rotation,
 	SpinningBox,
+	Velocity,
 } from "./components";
 import { app } from "./main";
 import {
@@ -26,6 +27,7 @@ import {
 } from "./resources";
 import { actions, addBundle, broadcast } from "./utils";
 import { PhysicsBox, SpecialBox } from "./bundles";
+import RAPIER from "@dimforge/rapier3d-compat";
 
 export const renderSystem = (world: j.World) => {
 	let scene = app.getResource(SceneResource);
@@ -102,11 +104,36 @@ export const physicsSystem = (world: j.World) => {
 	if (!physicsWorld) return;
 	//apply physics transformation to components
 
-	const ents = world.query(Position, Rotation, RigidBody);
-	ents.each((_entity, position, rotation, rigidbody) => {
+	const ents = world.query(Position, Rotation, Velocity, RigidBody);
+	ents.each((_entity, position, rotation, velocity, rigidbody) => {
 		const rb = physicsWorld!.getRigidBody(rigidbody);
 
 		if (!rb) return;
+
+		let replicated = world.get(_entity, Replicate);
+		if(replicated && !isHost()) {
+			//remove rb maybe
+			rb.setLinvel( new RAPIER.Vector3(
+				velocity.x,
+				velocity.y,
+				velocity.z
+			), true)
+
+			rb.setTranslation( new THREE.Vector3(
+				position.x,
+				position.y,
+				position.z
+			), true);
+
+			rb.setRotation( new RAPIER.Quaternion(
+				rotation.x,
+				rotation.y,
+				rotation.z,
+				rotation.w
+			), true)
+
+			return;
+		}
 
 		position.x = rb.translation().x;
 		position.y = rb.translation().y;
@@ -116,6 +143,10 @@ export const physicsSystem = (world: j.World) => {
 		rotation.y = rb.rotation().y;
 		rotation.z = rb.rotation().z;
 		rotation.w = rb.rotation().w;
+
+		velocity.x = rb.linvel().x;
+		velocity.y = rb.linvel().y;
+		velocity.z = rb.linvel().z;
 	});
 	physicsWorld!.step();
 };
@@ -132,6 +163,21 @@ export const spawnPhysicsBox = broadcast((world, position: {x: number, y: number
 	//return false if this wasn't allowed
 })
 
+//key is host entity id. value is my local entity id
+export const entityMap = new Map<j.Entity, j.Entity>();
+export const replicateSystem = (world: j.World) => {
+
+	world.monitor(Replicate).eachIncluded((entity) => {
+		//add new entity to map
+		let replicateComponent = world.get(entity,Replicate)!;
+		entityMap.set(replicateComponent.hostEntity, entity);
+	}).eachExcluded((entity)=> {
+		//remove entity from map
+		let replicateComponent = world.get(entity,Replicate)!;
+		entityMap.delete(replicateComponent.hostEntity);
+	});
+};
+
 export const [isHost, setIsHost] = createSignal(false);
 export const [hostPeer, setHostPeer] = createSignal<DataConnection>();
 export const [peers, setPeers] = createSignal<DataConnection[]>([]);
@@ -140,6 +186,7 @@ export enum MessageType {
 	Snapshot = 0,
 	Broadcast = 1,
 	BroadcastRequest = 2,
+	Sync = 3,
 }
 
 export const initUI = (world: j.World) => {
@@ -185,7 +232,10 @@ export const initUI = (world: j.World) => {
 				const snapshot: {}[] = []; //world.createSnapshot();
 				const replicatedEnts = world.query(Replicate);
 				replicatedEnts.each((entity, comps) => {
-					let entSnapshot: {}[] = [];
+					let entSnapshot: {}[] = [{
+						type: Replicate,
+						value: comps
+					}];
 					comps.components.forEach((comp) => {
 						entSnapshot.push({
 							type: comp,
@@ -200,6 +250,33 @@ export const initUI = (world: j.World) => {
 					data: snapshot,
 				});
 			});
+
+			setInterval( async ()=> {
+				
+				const snapshot: {}[] = []; //world.createSnapshot();
+				const replicatedEnts = world.query(Replicate);
+				replicatedEnts.each((entity, comps) => {
+					let entSnapshot: {}[] = [{
+						type: Replicate,
+						value: comps
+					}];
+					comps.components.forEach((comp) => {
+						entSnapshot.push({
+							type: comp,
+							value: world.get(entity, comp),
+						});
+					});
+					snapshot.push({ entity: comps.hostEntity, components: entSnapshot });
+				});
+				// console.log("snapshot sending", snapshot);
+				peers().forEach((conn)=>{
+					conn.send({
+						type: MessageType.Sync,
+						data: snapshot,
+					});
+				})
+				// i++;
+			}, 16)
 
 			conn.on("data", function (data: any) {
 
@@ -233,7 +310,7 @@ export const initUI = (world: j.World) => {
 			// Receive messages
 			setHostPeer(conn);
 			conn.on("data", function (data: any) {
-				console.log("Received", data);
+				// console.log("Received", data);
 
 				if (data.type == MessageType.Snapshot) {
 					console.log("Received snapshot", data.data);
@@ -251,6 +328,17 @@ export const initUI = (world: j.World) => {
 				} else if (data.type == MessageType.Broadcast) {
 					let action = actions.get(data.data.actionId);
 					action!(world, data.data.context);
+				} else if (data.type == MessageType.Sync) {
+					data.data.forEach( (entitySnapshot: any) => {
+						//get local entity
+						let localEnt = entityMap.get(entitySnapshot.entity)
+						if(localEnt){
+							entitySnapshot.components.forEach( (component) => {
+								world.set(localEnt!, component.type, component.value)
+							});
+						}
+						// console.log(localEnt)
+					});
 				}
 			});
 

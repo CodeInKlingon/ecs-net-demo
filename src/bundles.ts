@@ -1,10 +1,10 @@
-import { addOrUpdateIfExists, addIfNotSet, defineBundle } from "./utils";
+import { addOrUpdateIfExists, addIfNotSet, defineBundle, nextStep } from "./utils";
 import * as THREE from "three";
 import RAPIER from '@dimforge/rapier3d-compat';
 
 import { PhysicsResource, SceneResource } from "./resources";
 import { app } from "./main";
-import { Bundle, Mesh, Position, Replicate, RigidBody, Rotation, SpinningBox } from "./components";
+import { Bundle, Mesh, Position, Replicate, RigidBody, Rotation, SpinningBox, Velocity } from "./components";
 
 export const PhysicsBox = defineBundle(
 	"physics_box",
@@ -12,10 +12,13 @@ export const PhysicsBox = defineBundle(
         let scene = app.getResource(SceneResource);
         let physicsWorld = app.getResource(PhysicsResource);
         if (!scene || !physicsWorld) return;
-
-		addOrUpdateIfExists(world, entity, Replicate, { hostEntity: entity, components: [Bundle, Position, Rotation]});
+		nextStep(()=>{
+			addIfNotSet(world, entity, Replicate, { hostEntity: entity, components: [Bundle, Position, Rotation, Velocity]});
+		});
 	
 		let [position] = addIfNotSet(world, entity, Position, { x: 0, y: 1.5, z: 0 });
+		
+		addIfNotSet(world, entity, Velocity, {x: 0, y: 0, z: 0});
 
 		let [rotation] = addIfNotSet(world, entity, Rotation, {
 			x: 1,
@@ -58,9 +61,14 @@ export const SpecialBox = defineBundle(
         let physicsWorld = app.getResource(PhysicsResource);
         if (!scene || !physicsWorld) return;
 
-		addOrUpdateIfExists(world, entity, Replicate, { hostEntity: entity, components: [Bundle, Position, Rotation]});
+		nextStep(()=>{
+
+			addIfNotSet(world, entity, Replicate, { hostEntity: entity, components: [Bundle, Position, Rotation, Velocity]});
+		})
 
 		const [position] = addIfNotSet(world, entity, Position, { x: 0, y: 0, z: 0 });
+
+		addOrUpdateIfExists(world, entity, Velocity, {x: 0, y: 0, z: 0});
 
 		const [rotation] = addIfNotSet(world, entity, Rotation, {
 			x: 1,

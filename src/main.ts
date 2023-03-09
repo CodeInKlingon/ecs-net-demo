@@ -15,6 +15,7 @@ import {
 	initUI,
 	physicsSystem,
 	renderSystem,
+	replicateSystem,
 	rotateCube,
 } from "./systems";
 import { actions, bundleMap, nextStep, nextStepSystem } from "./utils";
@@ -63,11 +64,13 @@ app.addInitSystem((world) => {
 	console.log("Entitys this step", world.query().length); //0
 });
 app.addInitSystem(log);
+
 app.addSystem(nextStepSystem);
 app.addSystem(bundleSpawner);
 app.addSystem(rotateCube);
 app.addSystem(physicsSystem);
 app.addSystem(renderSystem);
+app.addSystem(replicateSystem);
 
 const loop = () => {
 	app.step();

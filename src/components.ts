@@ -12,6 +12,12 @@ export const Position = j.value<{
     y: number,
     z: number,
 }>();
+
+export const Velocity = j.value<{
+    x: number,
+    y: number,
+    z: number,
+}>();
   
 export const Mesh = j.value<number>();
 

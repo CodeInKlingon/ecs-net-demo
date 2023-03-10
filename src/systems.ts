@@ -186,13 +186,14 @@ export const replicateSystem = (world: j.World) => {
 		// let replicateComponent = world.get(entity,Replicate)!;
 		
 		let hostId
-		entityMap.forEach((value, key)=>{
+		entityMap.forEach((value: number, key: number)=>{
 			if(value == entity) {
 				hostId = key;
 				return;
 			}
 		});
-		entityMap.delete(hostId);
+		if(hostId)
+			entityMap.delete(hostId);
 	});
 };
 
@@ -204,7 +205,7 @@ window.addEventListener("mousedown", (e) => {
 	clicking = true;
 	console.log(pointer)
 });
-window.addEventListener("mouseup", (e) => {console.log(e);clicking = true})
+window.addEventListener("mouseup", (e) => {console.log(e);clicking = false})
 const raycaster = new THREE.Raycaster();
 export const broadCastDelete = broadcast((world, hostEnt: j.Entity )=>{
 	let ent = entityMap.get(hostEnt)
@@ -215,21 +216,23 @@ export const clickAndCastDelete = (world: j.World) => {
 	let camera = world.getResource(CameraResource);
 	let scene = world.getResource(SceneResource);
 
-	raycaster.setFromCamera( pointer, camera );
-
-	const intersects = raycaster.intersectObjects( scene.children );
-	const meshes = world.query(Mesh);
-	meshes.each((entity, mesh)=> {
-		let wasClicked = intersects.find((m) => m.object.id === mesh);
-		if(wasClicked){
-			console.log("delete", entity)
-
-			let hostEnt = world.get(entity, Replicate)!.hostEntity
-			broadCastDelete(hostEnt)
-
-			return;
-		}
-	})
+	if(clicking){
+		raycaster.setFromCamera( pointer, camera );
+	
+		const intersects = raycaster.intersectObjects( scene.children );
+		const meshes = world.query(Mesh);
+		meshes.each((entity, mesh)=> {
+			let wasClicked = intersects.find((m) => m.object.id === mesh);
+			if(wasClicked){
+				console.log("delete", entity)
+	
+				let hostEnt = world.get(entity, Replicate)!.hostEntity
+				broadCastDelete(hostEnt)
+	
+				return;
+			}
+		})
+	}
 
 }
 
@@ -388,7 +391,7 @@ export const initUI = (world: j.World) => {
 						//get local entity
 						let localEnt = entityMap.get(entitySnapshot.entity)
 						if(localEnt){
-							entitySnapshot.components.forEach( (component) => {
+							entitySnapshot.components.forEach( (component: {type: j.Singleton<any>, value: unknown}) => {
 								world.set(localEnt!, component.type, component.value)
 							});
 						}

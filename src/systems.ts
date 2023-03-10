@@ -25,7 +25,7 @@ import {
 	RendererResource,
 	SceneResource,
 } from "./resources";
-import { actions, addBundle, broadcast } from "./utils";
+import { actions, addBundle, broadcast, bundleMap } from "./utils";
 import { PhysicsBox, SpecialBox } from "./bundles";
 import RAPIER from "@dimforge/rapier3d-compat";
 
@@ -96,7 +96,16 @@ export const bundleSpawner = (world: j.World) => {
 		);
 		addBundle(world, entity, bundleId!);
 	});
+
 };
+
+export const bundleDespawner = (world: j.World) => {
+	world.monitorImmediate(Bundle).eachExcluded((entity) => {
+		let bundleId = world.get(entity, Bundle);
+		const bundle = bundleMap.get( bundleId!);
+		bundle?.destroy(world, entity);
+	});
+}
 
 export const physicsSystem = (world: j.World) => {
 	let physicsWorld = app.getResource(PhysicsResource);
@@ -169,14 +178,60 @@ export const replicateSystem = (world: j.World) => {
 
 	world.monitor(Replicate).eachIncluded((entity) => {
 		//add new entity to map
-		let replicateComponent = world.get(entity,Replicate)!;
-		entityMap.set(replicateComponent.hostEntity, entity);
-	}).eachExcluded((entity)=> {
+		let replicateComponent = world.get(entity,Replicate);
+		entityMap.set(replicateComponent!.hostEntity, entity);
+	})
+	world.monitorImmediate(Replicate).eachExcluded((entity)=> {
 		//remove entity from map
-		let replicateComponent = world.get(entity,Replicate)!;
-		entityMap.delete(replicateComponent.hostEntity);
+		// let replicateComponent = world.get(entity,Replicate)!;
+		
+		let hostId
+		entityMap.forEach((value, key)=>{
+			if(value == entity) {
+				hostId = key;
+				return;
+			}
+		});
+		entityMap.delete(hostId);
 	});
 };
+
+let clicking = false;
+const pointer = new THREE.Vector2();
+window.addEventListener("mousedown", (e) => {
+	pointer.x = ( e.clientX / window.innerWidth ) * 2 - 1;
+	pointer.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
+	clicking = true;
+	console.log(pointer)
+});
+window.addEventListener("mouseup", (e) => {console.log(e);clicking = true})
+const raycaster = new THREE.Raycaster();
+export const broadCastDelete = broadcast((world, hostEnt: j.Entity )=>{
+	let ent = entityMap.get(hostEnt)
+	world.delete(ent!);
+	return true;
+});
+export const clickAndCastDelete = (world: j.World) => {
+	let camera = world.getResource(CameraResource);
+	let scene = world.getResource(SceneResource);
+
+	raycaster.setFromCamera( pointer, camera );
+
+	const intersects = raycaster.intersectObjects( scene.children );
+	const meshes = world.query(Mesh);
+	meshes.each((entity, mesh)=> {
+		let wasClicked = intersects.find((m) => m.object.id === mesh);
+		if(wasClicked){
+			console.log("delete", entity)
+
+			let hostEnt = world.get(entity, Replicate)!.hostEntity
+			broadCastDelete(hostEnt)
+
+			return;
+		}
+	})
+
+}
 
 export const [isHost, setIsHost] = createSignal(false);
 export const [hostPeer, setHostPeer] = createSignal<DataConnection>();

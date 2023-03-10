@@ -10,7 +10,9 @@ import {
 	SceneResource,
 } from "./resources";
 import {
+	bundleDespawner,
 	bundleSpawner,
+	clickAndCastDelete,
 	initThreeSystem,
 	initUI,
 	physicsSystem,
@@ -66,11 +68,15 @@ app.addInitSystem((world) => {
 app.addInitSystem(log);
 
 app.addSystem(nextStepSystem);
-app.addSystem(bundleSpawner);
+app.addSystem(clickAndCastDelete);
+
+app.addSystem(bundleSpawner, j.after(clickAndCastDelete));
 app.addSystem(rotateCube);
 app.addSystem(physicsSystem);
 app.addSystem(renderSystem);
-app.addSystem(replicateSystem);
+app.addSystem(replicateSystem, j.after(bundleDespawner));
+app.addSystem(bundleDespawner, j.after(clickAndCastDelete));
+
 
 const loop = () => {
 	app.step();

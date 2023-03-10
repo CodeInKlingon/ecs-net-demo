@@ -24,6 +24,7 @@ export const Mesh = j.value<number>();
 export const RigidBody = j.value<number>();
 
 export const Bundle = j.value<string>();
+export const Bundle2 = j.value("f64");
 
 export const SpinningBox = j.tag();
 

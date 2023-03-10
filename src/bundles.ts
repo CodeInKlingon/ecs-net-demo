@@ -47,8 +47,16 @@ export const PhysicsBox = defineBundle(
 		physicsWorld!.createCollider(colliderDesc, rigidBody);
 
 	},
-	() => {
-		return;
+	(world, entity) => {
+		let scene = app.getResource(SceneResource);
+        let physicsWorld = app.getResource(PhysicsResource);
+
+		//remove from three scene
+		let meshId = world.get(entity, Mesh);
+		scene?.remove(scene.getObjectById(meshId!)!);
+
+		let rbHandle = world.get(entity, RigidBody);
+		physicsWorld?.removeRigidBody(physicsWorld.getRigidBody(rbHandle!));
 	}
 );
 
@@ -99,7 +107,18 @@ export const SpecialBox = defineBundle(
 		const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5);
 		physicsWorld.createCollider(colliderDesc, rigidBody);
 	},
-	() => {
-		return;
+	(world, entity) => {
+		console.log("delete me");
+		
+        let scene = app.getResource(SceneResource);
+        let physicsWorld = app.getResource(PhysicsResource);
+
+		//remove from three scene
+		let meshId = world.get(entity, Mesh);
+		scene?.remove(scene.getObjectById(meshId!)!);
+
+		let rbHandle = world.get(entity, RigidBody);
+		physicsWorld?.removeRigidBody(physicsWorld.getRigidBody(rbHandle!));
+		
 	}
 );

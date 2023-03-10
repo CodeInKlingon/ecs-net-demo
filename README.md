@@ -111,11 +111,11 @@ console.log("Entities this step", world.query().length); //0
 
 ## broadcast Function
 
-The `broadcast` function allows you to define actions anywhere in your code that should be executed by all clients of the game. The action can be initiated by any client as well. This cuts down on a lot of boilerplate code needing to be created.
+The `broadcast` function allows you to define actions and then execute them anywhere in your code and they will be executed by all clients of the game. The action can be initiated by any client as well. This cuts down on a lot of boilerplate code needing to be created.
 
 Actions are defined like so:
 ```typescript
-const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number}) => {
+export const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number}) => {
 	console.log("This should happen everywhere", position);
 	if(isHost()){
 		//host can check for some condition and return false to prevent the action from being broadcast
@@ -125,6 +125,7 @@ const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: nu
 	return true;
 })
 ```
+Actions should be defined at global scope to ensure they are accessible at runtime by any client.
 
 And initiated like this:
 

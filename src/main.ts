@@ -67,15 +67,18 @@ app.addInitSystem((world) => {
 });
 app.addInitSystem(log);
 
-app.addSystem(nextStepSystem);
-app.addSystem(clickAndCastDelete);
+app.addSystemToGroup(j.Group.Early, nextStepSystem);
 
-app.addSystem(bundleSpawner, j.after(clickAndCastDelete));
-app.addSystem(rotateCube);
-app.addSystem(physicsSystem);
-app.addSystem(renderSystem);
-app.addSystem(replicateSystem, j.after(bundleDespawner));
-app.addSystem(bundleDespawner, j.after(clickAndCastDelete));
+app.addSystemToGroup(j.Group.EarlyUpdate, clickAndCastDelete);
+app.addSystemToGroup(j.Group.EarlyUpdate, bundleSpawner, j.after(clickAndCastDelete));
+
+app.addSystemToGroup(j.Group.Update, rotateCube);
+app.addSystemToGroup(j.Group.Update, physicsSystem);
+
+app.addSystemToGroup(j.Group.LateUpdate, renderSystem);
+
+app.addSystemToGroup(j.Group.Late, replicateSystem);
+app.addSystemToGroup(j.Group.Late, bundleDespawner);
 
 
 const loop = () => {

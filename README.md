@@ -95,6 +95,8 @@ replicatedEnts.each((entity, components) => {
 });
 ```
 
+Currently a loop is configured on the host to send this data to all clients. The clients then use these values to update their local components values. 
+
 ## nextStep Function
 
 The `nextStep` function accepts a callback as its parameter. It operates using a double buffer like pattern and a system that executes last step's callbacks and moves the buffers around for next step.
@@ -136,4 +138,22 @@ Data that is required inside the action from the initiator should be passed in a
 
 Its important to note that the action will not neccessarily be completed in the same way by each client. The ecs worlds are not the same.
 
-more to come on how to overcome those challenges.
+For example if your action will remove an entity from the world you will need to do two things: tell the action which entity you want to delete using the hosts entity id and second in the action get the local entity id from the entity map using the host entity id you passed in. 
+
+```typescript
+
+export const broadCastDelete = broadcast((world, hostEnt: j.Entity ) => {
+	let ent = entityMap.get(hostEnt)
+	world.delete(ent!);
+	return true;
+});
+
+let hostEnt = world.get(entity, Replicate)!.hostEntity
+broadCastDelete(hostEnt)
+```
+
+The same is true for actions that will modify a specific entity. You will need to use this entity look up map to ensure all clients are targetting the same entity.
+
+The enity map is kept up to date by a system and a monitor using the Replicate component. 
+
+more to come later

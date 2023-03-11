@@ -12,6 +12,7 @@
     "@dimforge/rapier3d-compat": "^0.11.1",
     "@javelin/ecs": "2.0.0-alpha.5",
     "@types/three": "^0.149.0",
+    "game-inputs": "^0.8.0",
     "peerjs": "^1.4.7",
     "solid-js": "^1.6.11",
     "three": "^0.150.1"

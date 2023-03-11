@@ -1,5 +1,6 @@
 import * as j from "@javelin/ecs";
 import { Component, Value } from "@javelin/ecs/dist/declarations/src/component";
+import { GameInputs } from 'game-inputs'
 
 import * as THREE from "three";
 import { DataConnection, Peer } from "peerjs";
@@ -9,7 +10,9 @@ import html from "solid-js/html";
 
 import {
 	Bundle,
+	HasLocalAuthority,
 	Mesh,
+	Player,
 	Position,
 	Replicate,
 	RigidBody,
@@ -66,6 +69,13 @@ export const initThreeSystem = () => {
 
 	renderer!.setSize(window.innerWidth, window.innerHeight);
 	document.body.appendChild(renderer!.domElement);
+
+	window.addEventListener("resize", () => {
+		
+		camera!.aspect = window.innerWidth / window.innerHeight;
+		camera!.updateProjectionMatrix();
+		renderer!.setSize(window.innerWidth, window.innerHeight);
+	})
 };
 
 export const rotateCube = (world: j.World) => {
@@ -160,17 +170,61 @@ export const physicsSystem = (world: j.World) => {
 	physicsWorld!.step();
 };
 
-export const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number})=>{
-	console.log("This should happen everywhere", position);
-	if(isHost()){
-		//host can check for some condition and return false to prevent the action from being broadcast
-		// return false;
-	}
-	world.create( j.type( Bundle, Position), PhysicsBox,  position)
-	return true;
-
-	//return false if this wasn't allowed
+var domElement = document.querySelector('#app')
+var inputs = new GameInputs(domElement, {
+  preventDefaults: true, 
+  allowContextMenu: false,
 })
+inputs.bind( 'move-left', 'KeyA', 'ArrowLeft' )
+inputs.bind( 'move-right', 'KeyD', 'ArrowRight' )
+
+export const playerMovement = (world: j.World) => {
+	const physicsWorld = world.getResource(PhysicsResource);
+	const players = world.query(Player, RigidBody, HasLocalAuthority);
+
+	players.as(RigidBody).each((entity, rbHandle) => {
+		console.log("player entity", entity)
+		let rigidBody = physicsWorld.getRigidBody(rbHandle)
+
+		var leftAmount = inputs.state['move-left']? 1: 0;
+		var rightAmount = inputs.state['move-right']? 1: 0;
+		console.log("apply", rightAmount - leftAmount)
+		rigidBody.applyImpulse({x: rightAmount - leftAmount,y: 0, z: 0}, true)
+	});
+}
+
+export const actionExecuterSystem = (world: j.World) => {
+	actionQueue.queue.forEach((actionInQueue) => {
+		let action = actions.get(actionInQueue.actionId);
+		console.log("do the messaging stuff here")
+		if(isHost()){
+	
+			let result = action!(world, actionInQueue.context);
+			if(result.broadcast){
+					peers().forEach((conn) => {
+						console.log("send to conn");
+						conn.send({
+							type: MessageType.Broadcast,
+							data: {
+								actionId: actionInQueue.actionId,
+								context: result.newContext
+							}
+						})
+					});
+			}
+		}else{
+			hostPeer()?.send({
+				type: MessageType.BroadcastRequest,
+				data: {
+					actionId: actionInQueue.actionId,
+					context: actionInQueue.context
+				}
+			})
+		}
+	})
+
+	actionQueue.queue = [];
+}
 
 //key is host entity id. value is my local entity id
 export const entityMap = new Map<j.Entity, j.Entity>();
@@ -178,23 +232,31 @@ export const replicateSystem = (world: j.World) => {
 
 	world.monitor(Replicate).eachIncluded((entity) => {
 		//add new entity to map
-		let replicateComponent = world.get(entity,Replicate);
-		entityMap.set(replicateComponent!.hostEntity, entity);
+		let replicateComponent = world.get(entity, Replicate);
+		if(isHost()){
+			entityMap.set(entity, entity);
+		}else{
+			entityMap.set(replicateComponent!.hostEntity!, entity);
+		}
+
+		if(replicateComponent?.peerWithAuthority && replicateComponent.peerWithAuthority == myPeerID()){
+			// console.log("set has local auth")
+			world.add(entity, HasLocalAuthority);
+		}
 	})
+}
+
+export const replicateCleanUp = (world: j.World) => {
 	world.monitorImmediate(Replicate).eachExcluded((entity)=> {
 		//remove entity from map
-		// let replicateComponent = world.get(entity,Replicate)!;
-		
-		let hostId
-		entityMap.forEach((value: number, key: number)=>{
-			if(value == entity) {
-				hostId = key;
-				return;
-			}
-		});
-		if(hostId)
-			entityMap.delete(hostId);
+		let replicateComponent = world.get(entity,Replicate)!;
+		if(isHost()){
+			entityMap.delete(entity);
+		}else{
+			entityMap.delete(replicateComponent!.hostEntity!);
+		}
 	});
+
 };
 
 let clicking = false;
@@ -239,6 +301,7 @@ export const clickAndCastDelete = (world: j.World) => {
 export const [isHost, setIsHost] = createSignal(false);
 export const [hostPeer, setHostPeer] = createSignal<DataConnection>();
 export const [peers, setPeers] = createSignal<DataConnection[]>([]);
+export const [myPeerID, setMyPeerId] = createSignal<string>("");
 
 export enum MessageType {
 	Snapshot = 0,
@@ -289,20 +352,20 @@ export const initUI = (world: j.World) => {
 			conn.on("open", function () {
 				const snapshot: {}[] = []; //world.createSnapshot();
 				const replicatedEnts = world.query(Replicate);
-				replicatedEnts.each((entity, comps) => {
+				replicatedEnts.each((entity, replicateComponent) => {
 					let entSnapshot: {}[] = [{
 						type: Replicate,
-						value: comps
+						value: replicateComponent
 					}];
-					comps.components.forEach((comp) => {
+					replicateComponent.components.forEach((comp) => {
 						entSnapshot.push({
 							type: comp,
 							value: world.get(entity, comp),
 						});
 					});
-					snapshot.push({ entity: comps.hostEntity, components: entSnapshot });
+					snapshot.push({ entity: entity, components: entSnapshot });
 				});
-				console.log("snapshot sending", snapshot);
+				console.log("snapshot sending with length", snapshot.length);
 				conn.send({
 					type: MessageType.Snapshot,
 					data: snapshot,
@@ -313,18 +376,18 @@ export const initUI = (world: j.World) => {
 				
 				const snapshot: {}[] = []; //world.createSnapshot();
 				const replicatedEnts = world.query(Replicate);
-				replicatedEnts.each((entity, comps) => {
+				replicatedEnts.each((entity, replicateComponent) => {
 					let entSnapshot: {}[] = [{
 						type: Replicate,
-						value: comps
+						value: replicateComponent
 					}];
-					comps.components.forEach((comp) => {
+					replicateComponent?.components.forEach((comp) => {
 						entSnapshot.push({
 							type: comp,
 							value: world.get(entity, comp),
 						});
 					});
-					snapshot.push({ entity: comps.hostEntity, components: entSnapshot });
+					snapshot.push({ entity: entity, components: entSnapshot });
 				});
 				// console.log("snapshot sending", snapshot);
 				peers().forEach((conn)=>{
@@ -350,7 +413,7 @@ export const initUI = (world: j.World) => {
 								data: data.data
 							})
 						});
-					}{
+					}else{
 						console.log("host denied an action from being broadcast", data.data.actionId)
 					}
 				}
@@ -371,7 +434,7 @@ export const initUI = (world: j.World) => {
 				// console.log("Received", data);
 
 				if (data.type == MessageType.Snapshot) {
-					console.log("Received snapshot", data.data);
+					console.log("Received snapshot with length", data.data.length);
 
 					(data.data as SnapShotArray).forEach((entitySnapshot) => {
 						let types = entitySnapshot.components.map(
@@ -392,10 +455,15 @@ export const initUI = (world: j.World) => {
 						let localEnt = entityMap.get(entitySnapshot.entity)
 						if(localEnt){
 							entitySnapshot.components.forEach( (component: {type: j.Singleton<any>, value: unknown}) => {
-								world.set(localEnt!, component.type, component.value)
+								
+								if(world.exists(localEnt!) && world.has(localEnt!, component.type)){
+									if(component.value !== true && component.value !== null){
+										world.set(localEnt!, component.type, component.value)
+									}
+								}
 							});
 						}
-						// console.log(localEnt)
+
 					});
 				}
 			});
@@ -441,6 +509,7 @@ export const initUI = (world: j.World) => {
 	};
 
 	peer.on("open", function (id) {
+		setMyPeerId(id);
 		console.log("My peer ID is: " + id);
 		render(App, appRoot);
 	});

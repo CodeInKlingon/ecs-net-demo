@@ -101,42 +101,20 @@ export function addBundle(world: j.World, entity: j.Entity, bundleId: string){
 //entity component values changed (components tagged for replication)
 
 
-export const actions = new Map<number, (world: j.World, data: any) => boolean>();
+export const actions = new Map<number, (world: j.World, data: any) => { broadcast: boolean, newContext: any}>();
 
 
-
-export function broadcast<T>( callback: (world: j.World, data: T) => boolean ){
+export function broadcast<T>( callback: (world: j.World, data: T) => { broadcast: boolean, newContext: T} ){
 	let id = actions.size + 1;
 	actions.set(id, callback);
-	return (data: T) => boradcastAction(id, data )
+	return (data: T) => enqueueAction(id, data )
 }
 
-function boradcastAction<T>(actionId: number, context: T){
-	let action = actions.get(actionId);
-	console.log("do the messaging stuff here")
-	if(isHost()){
-		peers().forEach((conn) => {
-			console.log("send to conn");
-			conn.send({
-				type: MessageType.Broadcast,
-				data: {
-					actionId: actionId,
-					context: context
-				}
-			})
-		});
-		action!(app.world, context);
-	}else{
-		hostPeer()?.send({
-			type: MessageType.BroadcastRequest,
-			data: {
-				actionId: actionId,
-				context: context
-			}
-		})
-		//assume peer executed this action
-		// action!(app.world, context);
-
-	}
+export const actionQueue: {queue: {actionId: number, context: any}[]} = {queue: []};
+function enqueueAction<T>(actionId: number, context: T){
+	actionQueue.queue.push({
+		actionId: actionId,
+		context: context
+    });
 }
 

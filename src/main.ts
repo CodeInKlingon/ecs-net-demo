@@ -58,17 +58,13 @@ let log = (_world: j.World) => {
 
 app.addInitSystem(initThreeSystem);
 app.addInitSystem(initUI);
-app.addInitSystem((world) => {
-	world.create();
-	nextStep(() => {
-		console.log("Entitys this step", world.query().length); //1
-	});
-	console.log("Entitys this step", world.query().length); //0
-});
-app.addInitSystem(log);
+
+app.addSystemToGroup(j.Group.Early, actionExecuterSystem);
 
 app.addSystemToGroup(j.Group.Early, nextStepSystem);
 
+app.addSystemToGroup(j.Group.EarlyUpdate, clickAndCastDelete);
+app.addSystemToGroup(j.Group.EarlyUpdate, replicateSystem, j.after(clickAndCastDelete));
 app.addSystemToGroup(j.Group.EarlyUpdate, clickAndCastDelete);
 app.addSystemToGroup(j.Group.EarlyUpdate, bundleSpawner, j.after(clickAndCastDelete));
 
@@ -76,6 +72,7 @@ app.addSystemToGroup(j.Group.Update, rotateCube);
 app.addSystemToGroup(j.Group.Update, physicsSystem);
 
 app.addSystemToGroup(j.Group.LateUpdate, renderSystem);
+app.addSystemToGroup(j.Group.Late, replicateCleanUp);
 
 app.addSystemToGroup(j.Group.Late, replicateSystem);
 app.addSystemToGroup(j.Group.Late, bundleDespawner);

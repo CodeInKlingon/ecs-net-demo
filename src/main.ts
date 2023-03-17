@@ -26,9 +26,7 @@ import {
 	syncIntervalSystem,
 	syncResetSystem,
 } from "./systems";
-import { rpcDictionary, bundleMap, nextStep, nextStepSystem } from "./utils";
-import { Bundle } from "./components";
-import { before } from "@javelin/ecs";
+import { bundleMap, nextStepSystem } from "./utils";
 
 export const app = j.app();
 
@@ -58,11 +56,11 @@ RAPIER.init().then(() => {
 	loop();
 });
 
-let log = (_world: j.World) => {
-	let pos = _world.query(Bundle);
-	let arr: number[] = [];
-	pos.each(e => arr.push(e));
-};
+// let log = (_world: j.World) => {
+// 	let pos = _world.query(Bundle);
+// 	let arr: number[] = [];
+// 	pos.each(e => arr.push(e));
+// };
 
 app.addInitSystem(initThreeSystem);
 app.addInitSystem(initUI);

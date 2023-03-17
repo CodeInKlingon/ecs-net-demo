@@ -1,7 +1,6 @@
 import * as j from "@javelin/ecs";
 import { Value } from "@javelin/ecs/dist/declarations/src/component";
-import { HasLocalAuthority, Player, Replicate } from "./components";
-import { hostPeer, isHost, myPeerID } from "./systems";
+import { HasLocalAuthority, Replicate } from "./components";
 
 export enum MessageType {
 	Snapshot = 0,
@@ -27,7 +26,7 @@ export const SyncSnapshot = {
     latest: [] as EntitySnapshot[]
 }
 
-export const ReplicateQueryToSnapshot = (world: j.World, myPeerId: string, localOnly: boolean = false) => {
+export const ReplicateQueryToSnapshot = (world: j.World, _myPeerId: string, localOnly: boolean = false) => {
     let snapshot: EntitySnapshot[] = []
 
     let replicatedQueryResult;

@@ -1,10 +1,10 @@
-import { addOrUpdateIfExists, addIfNotSet, defineBundle, nextStep } from "./utils";
+import { addIfNotSet, defineBundle, nextStep } from "./utils";
 import * as THREE from "three";
 import RAPIER from '@dimforge/rapier3d-compat';
 
 import { PhysicsResource, SceneResource } from "./resources";
 import { app } from "./main";
-import { Bundle, Mesh, Position, Replicate, RigidBody, Rotation, SpinningBox, Velocity } from "./components";
+import { Mesh, Position, RigidBody, Rotation, SpinningBox, Velocity } from "./components";
 
 export const PhysicsBox = defineBundle(
 	"physics_box",

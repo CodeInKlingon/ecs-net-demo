@@ -1,5 +1,4 @@
 import * as j from "@javelin/ecs";
-import { Component, Value } from "@javelin/ecs/dist/declarations/src/component";
 import { GameInputs } from 'game-inputs'
 
 import * as THREE from "three";
@@ -138,14 +137,8 @@ export const bundleDespawner = (world: j.World) => {
 	});
 }
 
-export const syncResetSystem = (world: j.World) => {
+export const syncResetSystem = (_world: j.World) => {
 	SynchedThisStep = false;
-	// world.query(Replicate).each((_entity, replicate) => {
-	// 	if(replicate){
-	// 		replicate.syncedThisStep = false;
-	// 		console.log("reset updated mark");
-	// 	}
-	// });
 }
 
 export const applySyncSnapshot = (world: j.World) => {
@@ -311,7 +304,7 @@ export const playerMovement = (world: j.World) => {
 	const physicsWorld = world.getResource(PhysicsResource);
 	const players = world.query(Player, RigidBody, Rotation, HasLocalAuthority);
 
-	players.as(RigidBody, Rotation).each((entity, rbHandle, rotation) => {
+	players.as(RigidBody, Rotation).each((_entity, rbHandle, rotation) => {
 		// console.log("player entity", entity)
 		let rigidBody = physicsWorld.getRigidBody(rbHandle)
 

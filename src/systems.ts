@@ -296,9 +296,11 @@ export const physicsSystem = (world: j.World) => {
 };
 
 var domElement = document.querySelector('#app')
-var inputs = new GameInputs(domElement, {
+var inputs = new GameInputs(domElement as HTMLElement, {
   preventDefaults: true, 
   allowContextMenu: false,
+  stopPropagation: false,
+  disabled: false
 })
 inputs.bind( 'move-left', 'KeyA', 'ArrowLeft' )
 inputs.bind( 'move-right', 'KeyD', 'ArrowRight' )

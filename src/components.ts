@@ -34,5 +34,6 @@ export const SpinningBox = j.tag();
 export const Replicate = j.value<{
     hostEntity: j.Entity| undefined,
     components: j.Singleton<any>[],
-    peerWithAuthority?: string
+    peerWithAuthority: string,
+    // syncedThisStep?: boolean,
 }>()

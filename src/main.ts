@@ -10,17 +10,25 @@ import {
 	SceneResource,
 } from "./resources";
 import {
+	rpcExecutorSystem,
+	applySyncSnapshot,
 	bundleDespawner,
 	bundleSpawner,
 	clickAndCastDelete,
 	initThreeSystem,
 	initUI,
 	physicsSystem,
+	playerMovement,
 	renderSystem,
+	replicateCleanUp,
 	replicateSystem,
 	rotateCube,
+	syncIntervalSystem,
+	syncResetSystem,
 } from "./systems";
-import { actions, bundleMap, nextStep, nextStepSystem } from "./utils";
+import { rpcDictionary, bundleMap, nextStep, nextStepSystem } from "./utils";
+import { Bundle } from "./components";
+import { before } from "@javelin/ecs";
 
 export const app = j.app();
 
@@ -51,31 +59,32 @@ RAPIER.init().then(() => {
 });
 
 let log = (_world: j.World) => {
-	// let pos = world.query(Position);
-	// console.log("number of position components",pos.length);
-    console.log(actions)
+	let pos = _world.query(Bundle);
+	let arr: number[] = [];
+	pos.each(e => arr.push(e));
 };
 
 app.addInitSystem(initThreeSystem);
 app.addInitSystem(initUI);
 
-app.addSystemToGroup(j.Group.Early, actionExecuterSystem);
-
-app.addSystemToGroup(j.Group.Early, nextStepSystem);
+app.addSystemToGroup(j.Group.Early, syncResetSystem);
+app.addSystemToGroup(j.Group.Early, applySyncSnapshot, j.after(syncResetSystem));
+app.addSystemToGroup(j.Group.Early, nextStepSystem, j.after(applySyncSnapshot));
+app.addSystemToGroup(j.Group.Early, rpcExecutorSystem, j.after(nextStepSystem));
 
 app.addSystemToGroup(j.Group.EarlyUpdate, clickAndCastDelete);
 app.addSystemToGroup(j.Group.EarlyUpdate, replicateSystem, j.after(clickAndCastDelete));
-app.addSystemToGroup(j.Group.EarlyUpdate, clickAndCastDelete);
 app.addSystemToGroup(j.Group.EarlyUpdate, bundleSpawner, j.after(clickAndCastDelete));
 
-app.addSystemToGroup(j.Group.Update, rotateCube);
+app.addSystemToGroup(j.Group.Update, playerMovement);
+app.addSystemToGroup(j.Group.Update, rotateCube, j.before(physicsSystem));
 app.addSystemToGroup(j.Group.Update, physicsSystem);
 
 app.addSystemToGroup(j.Group.LateUpdate, renderSystem);
-app.addSystemToGroup(j.Group.Late, replicateCleanUp);
 
-app.addSystemToGroup(j.Group.Late, replicateSystem);
+app.addSystemToGroup(j.Group.Late, replicateCleanUp);
 app.addSystemToGroup(j.Group.Late, bundleDespawner);
+app.addSystemToGroup(j.Group.Late, syncIntervalSystem);
 
 
 const loop = () => {

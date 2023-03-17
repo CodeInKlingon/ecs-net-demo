@@ -1,7 +1,6 @@
 import * as j from "@javelin/ecs";
 import { ValuesInit } from "@javelin/ecs/dist/declarations/src/component";
-import { app } from "./main";
-import { hostPeer, isHost, MessageType, peers } from "./systems";
+import { Velocity } from "./components";
 
 export const bundleMap = new Map<
 	string,
@@ -17,7 +16,7 @@ export function defineBundle(
 	bundleDestruction: (world: j.World, entity: j.Entity) => void
 ): string {
 	bundleMap.set(bundleId, {
-		create: bundleCreation,
+		create: (world, entity) => { console.log("run create");return bundleCreation(world, entity)},//bundleCreation,
 		destroy: bundleDestruction,
 	});
 
@@ -37,8 +36,7 @@ export function addIfNotSet<T extends j.Component[]>(
 	type: j.Type<T>,
 	...values: ValuesInit<T>
 ){
-    let c = world.has(entity, type)
-	if (c) {
+	if (world.has(entity, type)) {
 		let c = world.get<T>(entity, type)
         // c = val;
         return [c] as ValuesInit<T>;
@@ -47,6 +45,8 @@ export function addIfNotSet<T extends j.Component[]>(
         return values;
 		// return null;
 	}
+
+	return values
 }
 
 /**
@@ -58,27 +58,32 @@ export function addOrUpdateIfExists<T extends j.Component[]>(
 	type: j.Type<T>,
 	...values: ValuesInit<T>
 ){
-	let c = world.has(entity, type)
-	if (c) {
-		let c = world.get<T>(entity, type)
-		c = values as j.ComponentValue<T>;
-        return c as ValuesInit<T>;
+	// let c = 
+	if (world.has(entity, type)) {
+		// let c = world.get<T>(entity, type)
+		world.set(entity, type, values);
+		// c = values as j.ComponentValue<T>;
+        return values as ValuesInit<T>;
 	} else {
-		world.add(entity, type, ...values);
-		return values;
+		console.log(type, values)
+		if(type == Velocity){}
+		    // world.add(entity, type, ...values);
+		return [...values];
 	}
+
+	return values;
 }
 
-let nextStepQueue: (() => void)[] = [];
-let thisStepQueue: (() => void)[] = [];
-export const nextStep = (callback: () => void) => {
+let nextStepQueue: ((world: j.World) => void)[] = [];
+let thisStepQueue: ((world: j.World) => void)[] = [];
+export const nextStep = (callback: (world: j.World) => void) => {
 	nextStepQueue.push(callback);
 }
 
-export const nextStepSystem = () => {
+export const nextStepSystem = (world: j.World) => {
 	
 	thisStepQueue.forEach( callback => {
-		callback();
+		callback(world);
 	});
 
 	thisStepQueue = nextStepQueue;
@@ -89,30 +94,25 @@ export const nextStepSystem = () => {
 export function addBundle(world: j.World, entity: j.Entity, bundleId: string){
 	//queue this for next step so that other components can be settled first	
 	const bundle = bundleMap.get(bundleId);
-	nextStep(()=>{
-		if (world.exists(entity)) bundle?.create(world, entity);
-	})
+	// nextStep((world)=>{
+		// if (world.exists(entity)) 
+		    bundle?.create(world, entity);
+	// })
 }
 
 
-//ecs updates messages
-//entity added (tagged for replication)
-//entity removed (tagged for replication)
-//entity component values changed (components tagged for replication)
+export const rpcDictionary = new Map<number, (world: j.World, data: any) => { broadcast: boolean, newContext: any}>();
 
 
-export const actions = new Map<number, (world: j.World, data: any) => { broadcast: boolean, newContext: any}>();
-
-
-export function broadcast<T>( callback: (world: j.World, data: T) => { broadcast: boolean, newContext: T} ){
-	let id = actions.size + 1;
-	actions.set(id, callback);
-	return (data: T) => enqueueAction(id, data )
+export function defineRPC<T>( callback: (world: j.World, data: T) => { broadcast: boolean, newContext: T} ){
+	let id = rpcDictionary.size + 1;
+	rpcDictionary.set(id, callback);
+	return (data: T) => enqueueRPC(id, data )
 }
 
-export const actionQueue: {queue: {actionId: number, context: any}[]} = {queue: []};
-function enqueueAction<T>(actionId: number, context: T){
-	actionQueue.queue.push({
+export const rpcQueue: {queue: {actionId: number, context: any}[]} = {queue: []};
+export function enqueueRPC<T>(actionId: number, context: T){
+	rpcQueue.queue.push({
 		actionId: actionId,
 		context: context
     });

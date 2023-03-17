@@ -4,7 +4,7 @@ This project is a proof of concept for the combination of these js libraries for
 
 The game behaviour is implemented using the javelin ecs library with solid-js used for a simple ui. Peerjs allows for players to join matches with eachother. One player picks the host option and is shown their room id. The other player enters that code into the join room text box and clicks join to connect with the host. The host initially sends a snapshot of the ecs world to the joining player so they can start the comunication loop with a world that is synched.
 
-Actions can be defined as functions that are broadcast to each connected player and can be initiated from either host or client.
+Actions can be defined as functions that are rpc to each connected player and can be initiated from either host or client.
 
 
 ## Getting started
@@ -25,7 +25,7 @@ Table of contents
 - [Bundle Component](#bundle-component)
 - [Replicate Component](#replicate-component)
 - [nextStep Function](#nextstep-function)
-- [broadcast Function](#broadcast-function)
+- [rpc Function](#rpc-function)
 ## Bundle Component
 I'm not fully settled on the word bundles. Bundles allow you to repeatably build up and tear down entities with components and their integrations with 3rd party libraries. 
 
@@ -83,7 +83,11 @@ The replicate component is used to mark which entities and which of their compon
 ```typescript
 let entity = world.create(j.Type(Position, Rotation, Bundle), /**values */);
 
-world.add(entity, Replicate, [Position, Bundle])
+world.add(entity, Replicate, {
+    hostEntity: entity
+    components: [Position, Bundle],
+    peerWithAuthority: myPeerId()
+})
 //only position and bundle components are marked to be replicated
 ```
 Now you can use a query to gather a list of entities as well as which components to get.
@@ -97,6 +101,8 @@ replicatedEnts.each((entity, components) => {
 
 Currently a loop is configured on the host to send this data to all clients. The clients then use these values to update their local components values. 
 
+Clients also send synchronization messages for the replicated components that have authority of. Synchronization messages they receive for entities they have authority of are skipped (host is a bit behind).
+
 ## nextStep Function
 
 The `nextStep` function accepts a callback as its parameter. It operates using a double buffer like pattern and a system that executes last step's callbacks and moves the buffers around for next step.
@@ -109,20 +115,24 @@ nextStep(()=>{
 console.log("Entities this step", world.query().length); //0
 ```
 
-## broadcast Function
+This is useful if you want to defer some code to the next world step.
 
-The `broadcast` function allows you to define actions and then execute them anywhere in your code and they will be executed by all clients of the game. The action can be initiated by any client as well. This cuts down on a lot of boilerplate code needing to be created.
+## rpc Function
+
+The `defineRPCc` function allows you to define actions and then execute them anywhere in your code and they can be executed by all clients of the game. The action can be initiated by any client as well. This cuts down on a lot of boilerplate code needing to be created.
 
 Actions are defined like so:
 ```typescript
-export const spawnPhysicsBox = broadcast((world, position: {x: number, y: number, z: number}) => {
-	console.log("This should happen everywhere", position);
+export const spawnPhysicsBox = defineRPC((world, data: {position: {x: number, y: number, z: number}}) => {
+	console.log("This should happen everywhere", data.position);
 	if(isHost()){
-		//host can check for some condition and return false to prevent the action from being broadcast
-		// return false;
+    	console.log("This should happen only on the host");
+		//host can check for some condition and return false to prevent the action from being rpc
+        data.position.x + 1;
+		// return {broadcast: false, newContext: data};
 	}
 	world.create( j.type( Bundle, Position), PhysicsBox,  position)
-	return true;
+	return {broadcast: true, newContext: data};
 })
 ```
 Actions should be defined at global scope to ensure they are accessible at runtime by any client.
@@ -133,9 +143,9 @@ And initiated like this:
 spawnPhysicsBox({x: 0, y: 3, z: 0})
 ```
 
-Notice the action's callback returns true or false. That is used by the host to control whether the action should be broadcasted to the clients. When a client initiates an action it is actually just asking the host if it can do the action. The host then initiates the action and only broadcasts the action to clients if the action returns true.
+Notice the action's callback returns a) a broadcast flag and b) the data it was passed. The broadcast boolean is used by the host to control whether the action should be broadcasted to the clients. When a client initiates an rpc it is actually just asking the host if it can do the action. The host then initiates the action and only broadcasts the action to clients if the action returns true.
 
-Data that is required inside the action from the initiator should be passed in as a parameter. In the example above we pass in a position object. This allows actions to have parameters. 
+Data that is required inside the action from the initiator should be passed in as a parameter. In the example above we pass in a position object. This allows actions to have parameters. Because we are returning the data at the end of the call this allows the host to modify the data before it gets sent to the clients. In the example above we modified the position value on the host which will be carried over to the clients.
 
 Its important to note that the action will not neccessarily be completed in the same way by each client. The ecs worlds are not the same.
 
@@ -143,14 +153,14 @@ For example if your action will remove an entity from the world you will need to
 
 ```typescript
 
-export const broadCastDelete = broadcast((world, hostEnt: j.Entity ) => {
-	let ent = entityMap.get(hostEnt)
-	world.delete(ent!);
-	return true;
+export const deleteEntity = defineRPC((world, hostEntity: j.Entity ) => {
+	let localEnt = entityMap.get(hostEnt)
+	world.delete(localEnt!);
+	return {broadcast: true, newContext: hostEntity};
 });
 
-let hostEnt = world.get(entity, Replicate)!.hostEntity
-broadCastDelete(hostEnt)
+let hostEntity = world.get(someLocalEntity, Replicate)!.hostEntity
+deleteEntity(hostEntity)
 ```
 
 The same is true for actions that will modify a specific entity. You will need to use this entity look up map to ensure all clients are targetting the same entity.

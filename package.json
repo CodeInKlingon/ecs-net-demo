@@ -22,8 +22,7 @@
 	},
 	"dependencies": {
 		"@dimforge/rapier3d-compat": "^0.11.1",
-		"@javelin/ecs": "^1.0.0-alpha.13",
-		"@javelin/hrtime-loop": "^1.0.0-alpha.4",
+		"@lastolivegames/becsy": "^0.15.5",
 		"peerjs": "^1.4.7",
 		"solid-js": "^1.6.11",
 		"three": "^0.150.1"

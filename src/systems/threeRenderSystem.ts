@@ -1,27 +1,46 @@
-import { createQuery, World } from "@javelin/ecs";
+
 import * as THREE from "three";
 import { camera, renderer, scene } from "../main";
 import { Position, Rotation, Mesh } from "../schemas";
+import { System, system } from "@lastolivegames/becsy";
+import { PhysicsSystem } from "./physics";
 
-const objects = createQuery(Position, Rotation, Mesh);
 
-export default (_world: World) => {
-	//apply component translation to three objects
-	objects((_entity, [position, rotation, id]) => {
-		const object = scene.getObjectById(id.id);
+@system(s => s.after(PhysicsSystem))
+export class ThreeRenderSystem extends System {
 
-		if (!object) return;
+	private threeEntities = this.query(
+		q => q.current.with(Position).read.and.with(Rotation).read.and.with(Mesh).read);
+	
 
-		object?.position.set(position.x, position.y, position.z);
-		object?.setRotationFromQuaternion(
-			new THREE.Quaternion(
-				rotation.x,
-				rotation.y,
-				rotation.z,
-				rotation.w
-			)
-		);
-	});
+	execute(): void {
+		// console.log("threejs entity count", this.threeEntities.current.length)
 
-	renderer.render(scene, camera);
+		for (const entity of this.threeEntities.current) {
+			// const mesh = entity.read(Mesh);
+			// const rotation = entity.read(Rotation)
+
+			const object = scene.getObjectById(entity.read(Mesh).id);
+
+			if (!object) {
+				console.log("no object found")
+				return;
+			}
+
+			// console.log(object)
+
+			//apply component translation to three objects
+			object.position.set(entity.read(Position).x, entity.read(Position).y, entity.read(Position).z);
+			object.setRotationFromQuaternion(
+				new THREE.Quaternion(
+					entity.read(Rotation).x,
+					entity.read(Rotation).y,
+					entity.read(Rotation).z,
+					entity.read(Rotation).w
+				)
+			);
+		}
+		renderer.render(scene, camera);
+	}
+
 };

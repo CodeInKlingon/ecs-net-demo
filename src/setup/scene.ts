@@ -1,10 +1,7 @@
-import { component, World } from "@javelin/ecs";
+import { World } from "@lastolivegames/becsy";
 import { Bundle } from "../schemas";
 import { SpecialBox } from "./bundles";
 
 export function spawnStaticCube(world: World) {
-	const entity = world.create();
-
-	const bundleComponent = component(Bundle, { id: SpecialBox });
-	world.attach(entity, bundleComponent);
+	world.createEntity(Bundle, { id: SpecialBox });
 }

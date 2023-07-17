@@ -1,17 +1,17 @@
-import { World } from "@javelin/ecs";
+import { Entity } from "@lastolivegames/becsy";
 
 export const bundleMap = new Map<
 	string,
 	{
-		create: (world: World, entity: number) => void;
-		destroy: (world: World, entity: number) => void;
+		create: (entity: Entity) => void;
+		destroy: (entity: Entity) => void;
 	}
 >();
 
 export function defineBundle(
 	bundleId: string,
-	bundleCreation: (world: World, entity: number) => void,
-	bundleDestruction: (world: World, entity: number) => void
+	bundleCreation: (entity: Entity) => void,
+	bundleDestruction: (entity: Entity) => void
 ): string {
 	bundleMap.set(bundleId, {
 		create: bundleCreation,

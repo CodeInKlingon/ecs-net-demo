@@ -1,33 +1,40 @@
-import { string, number } from "@javelin/ecs";
+import { component, field } from "@lastolivegames/becsy";
 
-export const Position = {
-	x: number,
-	y: number,
-	z: number,
+@component 
+export class Position {
+	@field.float64 declare x: number;
+	@field.float64 declare y: number;
+	@field.float64 declare z: number;
+}
+
+@component
+export class Rotation {
+	@field.float64 declare x: number
+	@field.float64 declare y: number
+	@field.float64 declare z: number
+	@field.float64 declare w: number
+}
+
+@component
+export class RigidBody {
+	@field.float64 declare handle: number;
 };
 
-export const Rotation = {
-	x: number,
-	y: number,
-	z: number,
-	w: number,
-};
+@component
+export class Collider {
+	@field.int32 declare handle: number;
+}
 
-export const RigidBody = {
-	handle: number,
-};
+@component
+export class Mesh {
+	@field.int32 declare id: number;
+}
 
-export const Collider = {
-	handle: number,
-};
-
-export const Mesh = {
-	id: number,
-};
-
-export const Bundle = {
-	id: string,
-};
+@component
+export class Bundle {
+	@field.dynamicString(50) declare id: string;
+}
 
 //This is esentially just a tag. So I can find this specific object later
-export const SpinningCube = { a: number };
+@component
+export class SpinningCube {}

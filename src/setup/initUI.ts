@@ -1,6 +1,6 @@
-import { component, World } from "@javelin/ecs";
+import { World } from "@lastolivegames/becsy";
 import { Bundle } from "../schemas";
-import { applySnapShot, peer } from "../main";
+import { createEntityQueue, peer } from "../main";
 
 import { createSignal } from "solid-js";
 import { render } from "solid-js/web";
@@ -10,9 +10,9 @@ import { spawnStaticCube } from "./scene";
 
 export function initUI(world: World) {
 	function spawn() {
-		const newEntity = world.create();
-		const bundleComponent = component(Bundle, { id: PhysicsBox });
-		world.attach(newEntity, bundleComponent);
+		console.log("Spawn")
+		createEntityQueue.push([Bundle, { id: PhysicsBox }])
+		// world.createEntity(Bundle, { id: PhysicsBox });
 	}
 
 	const appRoot = document.querySelector("#app") as HTMLElement;
@@ -40,7 +40,7 @@ export function initUI(world: World) {
 			console.log("user joined my room: ", conn.connectionId);
 
 			conn.on("open", function () {
-				const snap = world.createSnapshot();
+				const snap: any[] = []//world.createSnapshot();
 				console.log("snapshot sending", snap);
 				conn.send({
 					type: MessageType.Snapshot,
@@ -68,7 +68,8 @@ export function initUI(world: World) {
 					console.log("Received snapshot", data.data);
 					// world.reset();
 					// world = createWorld({ snapshot: data.data });
-					applySnapShot(data.data);
+					//TODO reimplement apply snapshot
+					// applySnapShot(data.data);
 				}
 			});
 
@@ -80,7 +81,7 @@ export function initUI(world: World) {
 	const App = () => {
 		return html`
 			<div>
-				<button onClick=${spawn} disabled=${() => !isHost()}>
+				<button onClick=${spawn} >
 					Spawn Cube
 				</button>
 				<button

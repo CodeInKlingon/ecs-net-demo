@@ -1,25 +1,39 @@
-import { createQuery, World } from "@javelin/ecs";
+import { System, system } from "@lastolivegames/becsy";
 import { physicsWorld } from "../main";
 import { Position, RigidBody, Rotation } from "../schemas";
+import { BundleSpawner } from "./bundleSpawner";
 
-const bodies = createQuery(Position, Rotation, RigidBody);
 
-export default (_world: World) => {
-	//apply physics transformation to components
-	bodies((_entity, [position, rotation, rigidbody]) => {
-		const rb = physicsWorld!.getRigidBody(rigidbody.handle);
+@system(s => s.after(BundleSpawner))
+export class PhysicsSystem extends System {
 
-		if (!rb) return;
+	private physicsEntities = this.query(
+		q => q.current.with(Position).write.and.with(Rotation).write.and.with(RigidBody).read);
+	
+	execute(): void {
+		// console.log("num", this.physicsEntities.current.length);
+		for (const entity of this.physicsEntities.current) {
+			// const rigidbody = entity.read(RigidBody);
+			const rb = physicsWorld!.getRigidBody(entity.read(RigidBody).handle);
+			if (!rb) {
+				console.log("no rb found");
+				return;
+			}
+			console.log(entity.read(RigidBody).handle);
+			console.log("rb.translation()", rb.translation());
+		
+			//apply physics transformation to components
+			entity.write(Position).x = rb.translation().x;
+			entity.write(Position).y = rb.translation().y;
+			entity.write(Position).z = rb.translation().z;
 
-		position.x = rb.translation().x;
-		position.y = rb.translation().y;
-		position.z = rb.translation().z;
+			entity.write(Rotation).x = rb.rotation().x;
+			entity.write(Rotation).y = rb.rotation().y;
+			entity.write(Rotation).z = rb.rotation().z;
+			entity.write(Rotation).w = rb.rotation().w;
+		}
 
-		rotation.x = rb.rotation().x;
-		rotation.y = rb.rotation().y;
-		rotation.z = rb.rotation().z;
-		rotation.w = rb.rotation().w;
-	});
+		physicsWorld!.step();
+	}
 
-	physicsWorld!.step();
 };

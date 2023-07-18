@@ -16,11 +16,9 @@ export class PhysicsSystem extends System {
 			// const rigidbody = entity.read(RigidBody);
 			const rb = physicsWorld!.getRigidBody(entity.read(RigidBody).handle);
 			if (!rb) {
-				console.log("no rb found");
+				console.warn("no rb found with id", entity.read(RigidBody).handle);
 				return;
 			}
-			console.log(entity.read(RigidBody).handle);
-			console.log("rb.translation()", rb.translation());
 		
 			//apply physics transformation to components
 			entity.write(Position).x = rb.translation().x;

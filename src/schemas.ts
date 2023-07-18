@@ -1,4 +1,4 @@
-import { component, field } from "@lastolivegames/becsy";
+import { component, field, EntityId, ComponentType} from "@lastolivegames/becsy";
 
 @component 
 export class Position {
@@ -38,3 +38,16 @@ export class Bundle {
 //This is esentially just a tag. So I can find this specific object later
 @component
 export class SpinningCube {}
+
+@component
+export class Replicated {
+
+	/** The peer who has authority over this entity */
+	@field.dynamicString(50) declare peerWithAuthority: string;
+
+	/** The entity id for this entity according to the authoratative peer */
+	@field.dynamicString(50) declare id: string;
+
+	@field.object declare components: ComponentType<any>[];
+
+}

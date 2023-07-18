@@ -1,4 +1,4 @@
-import { component, field, EntityId, ComponentType} from "@lastolivegames/becsy";
+import { component, field, ComponentType} from "@lastolivegames/becsy";
 
 @component 
 export class Position {

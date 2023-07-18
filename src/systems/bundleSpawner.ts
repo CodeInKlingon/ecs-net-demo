@@ -1,5 +1,5 @@
 import { Entity, System, system, ComponentType } from "@lastolivegames/becsy";
-import { Bundle, Mesh, Position, RigidBody, Rotation } from "../schemas";
+import { Bundle } from "../schemas";
 import { bundleMap } from "../setup/prefab";
 
 //bundle managemnet system. spawns and de spawns entities with bundle components using a monitor

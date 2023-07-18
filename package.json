@@ -25,6 +25,7 @@
 		"@dimforge/rapier3d-compat": "^0.11.1",
 		"@lastolivegames/becsy": "^0.15.5",
 		"peerjs": "^1.4.7",
+		"postprocessing": "^6.32.2",
 		"solid-js": "^1.6.11",
 		"three": "^0.150.1"
 	}

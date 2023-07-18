@@ -1,6 +1,6 @@
 
 import * as THREE from "three";
-import { camera, renderer, scene } from "../main";
+import { camera, composer, renderer, scene } from "../main";
 import { Position, Rotation, Mesh } from "../schemas";
 import { System, system } from "@lastolivegames/becsy";
 import { PhysicsSystem } from "./physics";
@@ -40,7 +40,9 @@ export class ThreeRenderSystem extends System {
 				)
 			);
 		}
-		renderer.render(scene, camera);
+		// renderer.render(scene, camera);
+		composer.render();
+
 	}
 
 };

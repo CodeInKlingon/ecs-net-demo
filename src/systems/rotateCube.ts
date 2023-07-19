@@ -1,7 +1,7 @@
 import { System, system } from "@lastolivegames/becsy";
 import * as THREE from "three";
 import { physicsWorld } from "../main";
-import { RigidBody, SpinningCube } from "../schemas";
+import { RigidBody, SpinningCube } from "../components";
 
 @system
 export class rotateCube extends System {

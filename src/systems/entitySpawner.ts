@@ -1,7 +1,7 @@
 import { System, system } from "@lastolivegames/becsy"
 import { createEntityQueue } from "../main"
-import { Bundle, Position } from "../schemas";
-import { BundleSpawner } from "./bundleSpawner";
+import { Bundle, BundleSpawner } from "../bundle";
+import { Position } from "../components";
 
 
 @system(s=> s.before(BundleSpawner))

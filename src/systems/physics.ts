@@ -1,7 +1,7 @@
 import { System, system } from "@lastolivegames/becsy";
 import { physicsWorld } from "../main";
-import { Position, RigidBody, Rotation } from "../schemas";
-import { BundleSpawner } from "./bundleSpawner";
+import { Position, RigidBody, Rotation } from "../components";
+import { BundleSpawner } from "../bundle";
 
 
 @system(s => s.after(BundleSpawner))

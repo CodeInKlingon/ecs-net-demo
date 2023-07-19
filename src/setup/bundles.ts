@@ -1,9 +1,9 @@
-import { defineBundle } from "./prefab";
+import { defineBundle, addOrReturnComponent, addOrSetComponent } from "../bundle";
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
-import { Position, RigidBody, Rotation, Mesh, SpinningCube, Replicated } from "../schemas";
+import { Position, RigidBody, Rotation, Mesh, SpinningCube } from "../components";
 import { physicsWorld, scene } from "../main";
-import { addOrReturnComponent, addOrSetComponent } from "../systems/bundleSpawner";
+import { Replicated } from "../multiplayer";
 function getRandomColor() {
 	const letters = "0123456789ABCDEF";
 	let color = "#";
@@ -26,7 +26,7 @@ export const PhysicsBox = defineBundle(
 		scene.add(cube);
 		addOrSetComponent(entity, Mesh, { id: cube.id });
 
-		addOrSetComponent(entity, Replicated, { peerWithAuthority: "1", id: "1", components: [Position] });
+		addOrSetComponent(entity, Replicated, { components: [Position] });
 
 		console.log("attach position");
 		let position = addOrReturnComponent(entity, Position, { x: -5, y: 1.5, z: 0 });

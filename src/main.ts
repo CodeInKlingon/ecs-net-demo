@@ -7,11 +7,10 @@ import { ComponentType, System, World, system } from "@lastolivegames/becsy";
 import {ThreeRenderSystem} from "./systems/threeRenderSystem";
 import {PhysicsSystem} from "./systems/physics";
 import { initUI } from "./setup/initUI";
-import { BundleSpawner } from "./systems/bundleSpawner";
-import { bundleMap } from "./setup/prefab";
+import { BundleSpawner, bundleMap } from "./bundle";
 import { rotateCube } from "./systems/rotateCube";
 import { entitySpawner } from "./systems/entitySpawner";
-import { Replicated } from "./schemas";
+import { Replicated } from "./multiplayer";
 
 export const createEntityQueue: (ComponentType<any> | Record<string, unknown>)[][] = [];
 export const peer = new Peer();

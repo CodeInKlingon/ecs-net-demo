@@ -1,5 +1,5 @@
 import { World } from "@lastolivegames/becsy";
-import { Bundle } from "../schemas";
+import { Bundle } from "../bundle";
 import { createEntityQueue, peer } from "../main";
 
 import { createSignal } from "solid-js";
@@ -34,7 +34,7 @@ export function initUI(world: World) {
 		console.log("hi");
 		setIsHost(true);
 
-		spawnStaticCube(world);
+		spawnStaticCube();
 
 		peer.on("connection", function (conn) {
 			console.log("user joined my room: ", conn.connectionId);

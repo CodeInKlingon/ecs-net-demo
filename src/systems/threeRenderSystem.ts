@@ -1,6 +1,6 @@
 
 import * as THREE from "three";
-import { camera, renderer, scene } from "../main";
+import { composer, scene } from "../main";
 import { Position, Rotation, Mesh } from "../components";
 import { System, system } from "@lastolivegames/becsy";
 import { PhysicsSystem } from "./physics";

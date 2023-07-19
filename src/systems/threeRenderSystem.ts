@@ -40,7 +40,9 @@ export class ThreeRenderSystem extends System {
 				)
 			);
 		}
-		renderer.render(scene, camera);
+		// renderer.render(scene, camera);
+		composer.render();
+
 	}
 
 };

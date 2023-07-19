@@ -2,6 +2,7 @@ import "./style.css";
 import RAPIER from "@dimforge/rapier3d-compat";
 import * as THREE from "three";
 import { Peer } from "peerjs";
+import { BlendFunction, DepthDownsamplingPass, EffectComposer, EffectPass, NormalPass, RenderPass, SMAAEffect, SSAOEffect } from "postprocessing";
 
 import { ComponentType, System, World, system } from "@lastolivegames/becsy";
 import {ThreeRenderSystem} from "./systems/threeRenderSystem";
@@ -24,7 +25,7 @@ class Replication extends System {
 	execute(): void {
 		for (const entity of this.networkedEntities.current) {
 			let componentsToReplicate = entity.read(Replicated).components;
-			console.log("components to replicate", componentsToReplicate)
+			// console.log("components to replicate", componentsToReplicate)
 
 			componentsToReplicate.forEach(compType => {
 
@@ -33,7 +34,7 @@ class Replication extends System {
 					val[key] = entity.read(compType)[key]
 
 				});
-				console.log("entity has value", val);
+				// console.log("entity has value", val);
 			});
 		}
 	}
@@ -85,6 +86,78 @@ renderer.shadowMap.enabled = true
 renderer.setSize(1920, 1080);
 document.body.appendChild(renderer.domElement);
 renderer.shadowMap.type = THREE.VSMShadowMap
+
+export const composer = new EffectComposer(renderer);
+
+const normalPass = new NormalPass(scene, camera);
+const depthDownsamplingPass = new DepthDownsamplingPass({
+	normalBuffer: normalPass.texture,
+	resolutionScale: 0.5
+});
+
+const normalDepthBuffer = renderer.capabilities.isWebGL2 ?
+	depthDownsamplingPass.texture : undefined;
+
+const smaaEffect = new SMAAEffect();
+
+
+smaaEffect.edgeDetectionMaterial.setEdgeDetectionThreshold(0.01);
+
+const ssaoEffect = new SSAOEffect(camera, normalPass.texture, {
+	blendFunction: BlendFunction.MULTIPLY,
+	distanceScaling: undefined,
+	depthAwareUpsampling: undefined,
+	normalDepthBuffer: normalDepthBuffer,
+	// normalDepthBuffer: depthDownsamplingPass ? depthDownsamplingPass.texture: undefined,
+	samples: 10,
+	rings: 4,
+	worldDistanceThreshold: 20,
+	worldDistanceFalloff: 20,
+	worldProximityThreshold: 2,
+	worldProximityFalloff: 0.02,
+	distanceThreshold: undefined,
+	distanceFalloff: undefined,
+	rangeThreshold: undefined,
+	rangeFalloff: undefined,
+	minRadiusScale: undefined,
+	luminanceInfluence: undefined,
+	radius: 1,
+	intensity: 10,
+	bias: undefined,
+	fade: undefined,
+	color: undefined,
+	resolutionScale: undefined,
+	resolutionX: undefined,
+	resolutionY: undefined,
+	width: undefined,
+	height: undefined
+	// blendFunction: BlendFunction.MULTIPLY,
+	// samples: 30,
+	// rings: 4,
+	// distanceThreshold: 1.0,
+	// distanceFalloff: 0.0,
+	// rangeThreshold: 0.5,
+	// rangeFalloff: 0.1,
+	// luminanceInfluence: 0.9,
+	// radius: 20,
+	// bias: 0.5,
+	// intensity: 1.0,
+	// color: undefined,
+	// // @ts-ignore
+	// normalDepthBuffer: downSamplingPass ? downSamplingPass.texture : null,
+	// resolutionScale: resolutionScale ?? 1,
+	// depthAwareUpsampling: true,
+});
+
+const effectsPass = new EffectPass(camera, smaaEffect, ssaoEffect );
+
+composer.addPass(normalPass);
+composer.addPass(depthDownsamplingPass);
+
+composer.addPass(new RenderPass(scene, camera));
+
+composer.addPass(effectsPass)
+
 
 camera.position.z = 10;
 

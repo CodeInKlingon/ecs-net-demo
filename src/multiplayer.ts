@@ -1,17 +1,26 @@
-import { ComponentType, System, component, field, system } from "@lastolivegames/becsy";
+import { ComponentType, Entity, System, World, component, field, system } from "@lastolivegames/becsy";
 import { ThreeRenderSystem } from "./systems/threeRenderSystem";
 import { addOrSetComponent } from "./bundle";
+import THREE from "three";
+import {Peer, DataConnection} from "peerjs";
 
 type peerId = string;
 type serializedComponent = {
     type: ComponentType<any>,
     value?: any
 }
+export const MessageType = {
+    ActionBroadcast: 'ActionBroadcast',
+    ActionRequest: 'ActionRequest',
+    NetworkSync: 'NetworkSync',
+} as const;
+
 type message = Map<remoteEntityId, serializedComponent[]>
 
 type localEntityId = number;
 type remoteEntityId = number;
-const entityLookUp = new Map<localEntityId, {remoteEntityId: remoteEntityId, peerId: peerId}>();
+
+const entityLookUp = new Map<{remoteEntityId: remoteEntityId, peerId: peerId}, Entity>();
 
 export function crateLocalEntity(){}
 export function removeLocalEntity(){}
@@ -105,44 +114,50 @@ export class NetworkSyncWriter extends System {
         // Clear global message queue
         messagesReceived.clear();
 
-        for( const entity of this.entities.current){
-
-            if(!entityLookUp.has(entity.__id)) continue;
-
-            const lookUp = entityLookUp.get(entity.__id);
-            const messageSender = lookUp!.peerId;
-            const remoteEntityId = lookUp!.remoteEntityId;
-
-            const messageForEntity = msgReceived.get(messageSender);
-            if(!messageForEntity) continue;
-            const syncData = messageForEntity!.get(remoteEntityId)
-            if(!syncData) continue;
-
-            const currentReplicatedComponents = entity.read(Replicated).components
-            
-            //apply data from syncData to ent with 
-            for(const comp of syncData){
+        for( const [peerId, messages] of msgReceived){
+        
+            for(const [remoteEntityId, comps] of messages){
                 
-                const compIndex = currentReplicatedComponents.indexOf(comp.type)
-                if(!!compIndex){
-                    currentReplicatedComponents.splice(compIndex, 1)
+                if(!entityLookUp.has({remoteEntityId, peerId})) {
+                    console.warn("no local entity found for message", remoteEntityId);
+                    continue;
                 }
-                //@ts-ignore
-                addOrSetComponent(entity, comp.type, comp.value)
-            }
 
-            //updates local replicated component to have correct components marked
-            entity.write(Replicated).components = syncData.map(c => c.type);
+                const entity = entityLookUp.get({remoteEntityId, peerId})!;
 
-            for( const comp of currentReplicatedComponents){
-                entity.remove(comp)
+                if(!entity.alive){
+                    console.warn("local entity for message no longer alive", remoteEntityId);
+                    continue;
+                }
+
+                const currentReplicatedComponents = entity.read(Replicated).components
+            
+                for(const comp of comps){
+                    
+                    const compIndex = currentReplicatedComponents.indexOf(comp.type)
+                    if(!!compIndex){
+                        currentReplicatedComponents.splice(compIndex, 1)
+                    }
+                    //@ts-ignore
+                    addOrSetComponent(entity, comp.type, comp.value)
+                }
+
+                //updates local replicated component to have correct components marked
+                entity.write(Replicated).components = comps.map(c => c.type);
+
+                for( const comp of currentReplicatedComponents){
+                    entity.remove(comp)
+                }
+
             }
         }
+
     }
 }
 
 @system(s => s.after(NetworkSyncWriter))
 export class NetworkSyncInitializer extends System {
+    
     declare waitForInitilization: boolean;
     
     
@@ -177,11 +192,106 @@ export class NetworkSyncInitializer extends System {
                 }
 
                 // Add to entity look up 
-                entityLookUp.set(entity.__id, {remoteEntityId, peerId})
+                entityLookUp.set({remoteEntityId, peerId}, entity.hold())
 
             }
         }
 
+        this.waitForInitilization = false;
     }
 
+}
+
+
+export const rpcDictionary = new Map<number, ( system: System, args: any) => { broadcast: boolean, args: any}>();
+
+export function defineRPC<T>( callback: (system: System, args: T) => { broadcast: boolean, args: T} ){
+	let id = rpcDictionary.size + 1;
+	rpcDictionary.set(id, callback);
+	return (targetRemote: string, args: T) => enqueueRPC(targetRemote, id, args )
+}
+
+export const rpcQueue: {targetRemote: string, actionId: number, args: any}[] = [];
+export function enqueueRPC<T>(targetRemote: string, actionId: number, args: T){
+	rpcQueue.push({
+        targetRemote: targetRemote,
+		actionId: actionId,
+		args: args
+    });
+}
+
+
+//Example
+// const rpcSpawnCar = defineRPC((system, args: {carPosition: THREE.Vector3, remoteEntityId?: number}) => {
+    
+//     const entity = system.createEntity();
+//     if(!args.remoteEntityId){
+//         args.remoteEntityId = entity.__id;
+//     }
+//     return { broadcast: true, args}
+// })
+
+// const myId = "1234";
+// rpcSpawnCar( myId, {carPosition: new THREE.Vector3(1,1,1)})
+
+@system
+export class NetworkActionRunner extends System {
+
+    public get peers(): DataConnection[] {
+        return [];
+    }
+
+    public get peerId() : string {
+        return ""
+    }
+    
+    
+    isRemote(remoteID: string) : boolean {
+        //TODO: define is host
+        return remoteID == this.peerId;
+    }
+    
+
+    execute(): void {
+        
+        const queue = rpcQueue.splice(0,rpcQueue.length);
+
+        for( const actionInQueue of queue){
+    
+            if(this.isRemote(actionInQueue.targetRemote)){
+                
+                let action = rpcDictionary.get(actionInQueue.actionId);
+                let result = action!(this, actionInQueue.args);
+
+                console.log("ran action locally with result of", result.args)
+                if(result.broadcast){
+                        this.peers.forEach((conn) => {
+                            console.log("send to conn");
+                            conn.send({
+                                type: MessageType.ActionBroadcast,
+                                data: {
+                                    actionId: actionInQueue.actionId,
+                                    context: result.args
+                                }
+                            })
+                        });
+                }
+            }else{
+
+                const remote = this.peers.find(p => p.connectionId == actionInQueue.targetRemote)
+                if(!remote) {
+                    console.warn("peer for action no longer available")
+                    continue;
+                }
+                remote.send({
+                    type: MessageType.ActionRequest,
+                    data: {
+                        actionId: actionInQueue.actionId,
+                        context: actionInQueue.args
+                    }
+                })
+            }
+        }
+    
+    }
 }
